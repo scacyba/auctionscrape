@@ -1,0 +1,39 @@
+name: scrape-bit-okayama
+
+on:
+  schedule:
+    - cron: "0 21 * * *" # JST 06:00
+  workflow_dispatch:
+    inputs:
+      start_url:
+        description: "BIT search-result/list URL"
+        required: false
+        type: string
+      max_details:
+        description: "Maximum detail pages to save; blank means MAX"
+        required: false
+        type: string
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          playwright install --with-deps chromium
+      - name: Scrape detail HTML and PDFs to R2
+        env:
+          BIT_START_URL: ${{ github.event.inputs.start_url || vars.BIT_START_URL }}
+          SCRAPE_MAX_DETAILS: ${{ github.event.inputs.max_details || vars.SCRAPE_MAX_DETAILS }}
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_BUCKET: ${{ secrets.R2_BUCKET }}
+          R2_PREFIX: ${{ vars.R2_PREFIX }}
+        run: python -m scraper.bit.scrape_details
