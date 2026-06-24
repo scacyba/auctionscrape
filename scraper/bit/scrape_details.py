@@ -376,6 +376,12 @@ async def scrape(
             await log_link_summary(list_html, page.url)
             targets = collect_detail_links(list_html, page.url, max_details)
             log_progress(f"found {len(targets)} detail links")
+            if not targets:
+                # Treat an empty list as a scrape failure so GitHub Actions uploads
+                # the captured page state instead of silently succeeding.
+                raise RuntimeError(
+                    f"No detail links found after navigation; current_url={page.url}"
+                )
             for index, target in enumerate(targets, start=1):
                 log_progress(
                     f"processing detail {index}/{len(targets)}: {target.detail_url}"

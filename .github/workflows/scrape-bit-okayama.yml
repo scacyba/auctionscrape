@@ -37,7 +37,16 @@ jobs:
           R2_BUCKET: ${{ secrets.R2_BUCKET }}
           R2_PREFIX: ${{ vars.R2_PREFIX }}
           BIT_ERROR_ARTIFACT_DIR: artifacts/bit-error
-        run: python -m scraper.bit.scrape_details
+          PYTHONUNBUFFERED: "1"
+        run: |
+          echo "scrape workflow git_sha=$(git rev-parse HEAD)"
+          echo "scrape workflow script=$(python - <<'PYINFO'
+import inspect
+import scraper.bit.scrape_details as scrape_details
+print(inspect.getfile(scrape_details))
+PYINFO
+)"
+          python -u -m scraper.bit.scrape_details
       - name: Upload error screenshots
         if: failure()
         uses: actions/upload-artifact@v4
