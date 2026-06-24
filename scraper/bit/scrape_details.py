@@ -13,7 +13,6 @@ from urllib.parse import urljoin, urlparse
 
 from bs4 import BeautifulSoup
 from playwright.async_api import (
-    BrowserContext,
     Page,
     TimeoutError as PlaywrightTimeoutError,
     async_playwright,
@@ -40,6 +39,8 @@ PDF_DOWNLOAD_TEXT = re.compile(
 class ScrapeTarget:
     detail_url: str
     stable_id: str
+    sale_unit_id: str | None = None
+    court_id: str | None = None
 
 
 def env_value_or_default(name: str, default: str) -> str:
@@ -83,25 +84,34 @@ def stable_id_from_url(url: str) -> str:
     return f"{path_slug}-{digest}"
 
 
-def detail_url_from_anchor(anchor, base_url: str) -> str | None:
+def scrape_target_from_anchor(anchor, base_url: str) -> ScrapeTarget | None:
     href = anchor.get("href", "")
     absolute_url = urljoin(base_url, href)
     if DETAIL_URL_PATTERN.search(urlparse(absolute_url).path):
-        return absolute_url
+        return ScrapeTarget(
+            detail_url=absolute_url, stable_id=stable_id_from_url(absolute_url)
+        )
 
     onclick = anchor.get("onclick", "")
     match = DETAIL_ONCLICK_PATTERN.search(onclick)
     if not match:
         return None
 
-    # BIT renders detail rows as href="#" links and stores the real transition
-    # parameters in tranPropertyDetail(saleUnitId, courtId, ...). Build the same
-    # detail endpoint URL so downstream scraping can continue via page.goto().
+    # BIT renders detail rows as href="#" links and stores the transition
+    # parameters in tranPropertyDetail(saleUnitId, courtId, ...). The URL below
+    # is only an identifier/storage key; actual navigation must click the link
+    # because direct detail URLs are rejected by the site.
     sale_unit_id = match.group("sale_unit_id")
     court_id = match.group("court_id")
-    return urljoin(
+    detail_url = urljoin(
         base_url,
         f"/app/propertyresult/pr001/h05?saleUnitId={sale_unit_id}&courtId={court_id}",
+    )
+    return ScrapeTarget(
+        detail_url=detail_url,
+        stable_id=stable_id_from_url(detail_url),
+        sale_unit_id=sale_unit_id,
+        court_id=court_id,
     )
 
 
@@ -112,17 +122,13 @@ def collect_detail_links(
     seen: set[str] = set()
     targets: list[ScrapeTarget] = []
     for anchor in soup.find_all("a"):
-        absolute_url = detail_url_from_anchor(anchor, base_url)
-        if absolute_url is None:
+        target = scrape_target_from_anchor(anchor, base_url)
+        if target is None:
             continue
-        if absolute_url in seen:
+        if target.detail_url in seen:
             continue
-        seen.add(absolute_url)
-        targets.append(
-            ScrapeTarget(
-                detail_url=absolute_url, stable_id=stable_id_from_url(absolute_url)
-            )
-        )
+        seen.add(target.detail_url)
+        targets.append(target)
         if max_details is not None and len(targets) >= max_details:
             break
     return targets
@@ -266,9 +272,9 @@ async def log_link_summary(html: str, base_url: str) -> None:
     soup = BeautifulSoup(html, "lxml")
     anchors = soup.find_all("a")
     detail_hrefs = [
-        detail_url
+        target.detail_url
         for anchor in anchors
-        if (detail_url := detail_url_from_anchor(anchor, base_url)) is not None
+        if (target := scrape_target_from_anchor(anchor, base_url)) is not None
     ]
     log_progress(
         f"collected list HTML: bytes={len(html.encode('utf-8'))} anchors={len(anchors)} detail_candidates={len(detail_hrefs)}"
@@ -313,34 +319,12 @@ async def save_detail_html(page: Page, storage: R2Storage, target: ScrapeTarget)
     return storage.put_bytes(key, html.encode("utf-8"), "text/html; charset=utf-8")
 
 
-async def download_pdf_from_direct_link(
-    page: Page, context: BrowserContext, storage: R2Storage, target: ScrapeTarget
-) -> str | None:
-    candidates = await page.locator("a").evaluate_all(r"""
-        els => els
-          .map(a => ({ href: a.href, text: a.innerText || a.textContent || '' }))
-          .filter(a => /3\s*点\s*セット|３\s*点\s*セット|三\s*点\s*セット/.test(a.text) || /pdf/i.test(a.href))
-        """)
-    for candidate in candidates:
-        href = candidate.get("href")
-        if not href:
-            continue
-        response = await context.request.get(href)
-        if not response.ok:
-            continue
-        body = await response.body()
-        content_type = response.headers.get("content-type", "application/pdf")
-        if b"%PDF" not in body[:1024] and "pdf" not in content_type.lower():
-            continue
-        key = dated_key("pdf", target.stable_id, "pdf")
-        return storage.put_bytes(key, body, "application/pdf")
-    return None
-
-
 async def download_pdf_by_click(
     page: Page, storage: R2Storage, target: ScrapeTarget
 ) -> str | None:
-    locator = page.get_by_text(PDF_DOWNLOAD_TEXT).first
+    locator = (
+        page.locator("#threeSetPDF").or_(page.get_by_text(PDF_DOWNLOAD_TEXT)).first
+    )
     try:
         await locator.wait_for(timeout=5_000)
     except PlaywrightTimeoutError:
@@ -365,6 +349,22 @@ async def download_pdf_by_click(
         return storage.put_bytes(key, pdf_bytes, "application/pdf")
     except PlaywrightTimeoutError:
         return None
+
+
+async def open_detail_by_click(page: Page, target: ScrapeTarget) -> None:
+    if target.sale_unit_id and target.court_id:
+        locator = page.locator(
+            f'a[onclick*="{target.sale_unit_id}"][onclick*="{target.court_id}"]'
+        ).first
+    else:
+        locator = page.locator(f'a[href="{target.detail_url}"]').first
+    log_progress(f"clicking detail link via Playwright: {target.detail_url}")
+    await locator.wait_for(state="visible", timeout=10_000)
+    await locator.click()
+    await wait_after_navigation_click(
+        page, re.compile("3点セット|３点セット|物件明細|現況調査|評価書")
+    )
+    await log_page_state(page, "after detail click")
 
 
 async def scrape(
@@ -394,9 +394,10 @@ async def scrape(
                 log_progress(
                     "start URL is not an entry page; collecting links from current page"
                 )
+            list_page_url = page.url
             list_html = await page.content()
-            await log_link_summary(list_html, page.url)
-            targets = collect_detail_links(list_html, page.url, max_details)
+            await log_link_summary(list_html, list_page_url)
+            targets = collect_detail_links(list_html, list_page_url, max_details)
             log_progress(f"found {len(targets)} detail links")
             if not targets:
                 # Treat an empty list as a scrape failure so GitHub Actions uploads
@@ -408,15 +409,13 @@ async def scrape(
                 log_progress(
                     f"processing detail {index}/{len(targets)}: {target.detail_url}"
                 )
-                await page.goto(
-                    target.detail_url, wait_until="networkidle", timeout=60_000
-                )
+                if page.url != list_page_url:
+                    log_progress("returning to list page via browser history")
+                    await page.go_back(wait_until="networkidle", timeout=60_000)
+                    await log_page_state(page, "after returning to list page")
+                await open_detail_by_click(page, target)
                 html_key = await save_detail_html(page, storage, target)
-                pdf_key = await download_pdf_from_direct_link(
-                    page, context, storage, target
-                )
-                if pdf_key is None:
-                    pdf_key = await download_pdf_by_click(page, storage, target)
+                pdf_key = await download_pdf_by_click(page, storage, target)
                 if pdf_key is None:
                     log_progress(
                         f"saved detail artifacts: html={html_key}; pdf=NOT_FOUND"
