@@ -247,9 +247,13 @@ async def wait_after_navigation_click(
         log_progress("waiting for networkidle after click")
         await page.wait_for_load_state("networkidle", timeout=30_000)
         await log_page_state(page, "networkidle reached")
+        if expected_text is None:
+            return
+        await page.get_by_text(expected_text).first.wait_for(timeout=10_000)
+        await log_page_state(page, "expected text is visible after networkidle")
         return
     except PlaywrightTimeoutError:
-        log_progress("networkidle timed out; falling back to expected text wait")
+        log_progress("networkidle or expected text wait timed out; falling back to expected text wait")
     if expected_text is None:
         await page.wait_for_load_state("domcontentloaded", timeout=30_000)
         return
@@ -547,10 +551,6 @@ async def scrape(
                 log_progress(
                     f"processing detail {index}/{len(targets)}: {target.detail_url}"
                 )
-                if page.url != list_page_url:
-                    log_progress("returning to list page via browser history")
-                    await page.go_back(wait_until="networkidle", timeout=60_000)
-                    await log_page_state(page, "after returning to list page")
                 if target.page_number != current_list_page_number:
                     await navigate_to_result_page(page, target.page_number)
                     current_list_page_number = target.page_number
@@ -579,6 +579,11 @@ async def scrape(
                     if detail_page is not page:
                         log_progress("closing detail popup/tab")
                         await detail_page.close()
+                    else:
+                        log_progress("returning from same-tab detail via browser history")
+                        await page.go_back(wait_until="networkidle", timeout=60_000)
+                        await log_page_state(page, "after returning from same-tab detail")
+                        current_list_page_number = target.page_number
             manifest_storage_key = save_manifest(storage, manifest_items)
             log_progress(f"saved JSON manifest: {manifest_storage_key}")
         except Exception:
