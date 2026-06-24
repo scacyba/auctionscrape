@@ -27,6 +27,9 @@ BIT_ENTRY_PATHS = {"", "/", "/app/areaselect/ps002/h04", "/app/top/pt001/h01"}
 OKAYAMA_ALL_PROPERTIES_BUTTON_TEXT = "選択した都道府県の全物件を検索する"
 DEFAULT_ERROR_ARTIFACT_DIR = "artifacts/bit-error"
 DETAIL_URL_PATTERN = re.compile(r"/app/propertyresult/")
+DETAIL_ONCLICK_PATTERN = re.compile(
+    r"tranPropertyDetail\(\s*[\"'](?P<sale_unit_id>\d+)[\"']\s*,\s*[\"'](?P<court_id>\d+)[\"']"
+)
 LOG_PREFIX = "[bit-scrape]"
 PDF_DOWNLOAD_TEXT = re.compile(
     r"3\s*点\s*セット.*ダウンロード|３\s*点\s*セット.*ダウンロード|三\s*点\s*セット.*ダウンロード"
@@ -80,16 +83,37 @@ def stable_id_from_url(url: str) -> str:
     return f"{path_slug}-{digest}"
 
 
+def detail_url_from_anchor(anchor, base_url: str) -> str | None:
+    href = anchor.get("href", "")
+    absolute_url = urljoin(base_url, href)
+    if DETAIL_URL_PATTERN.search(urlparse(absolute_url).path):
+        return absolute_url
+
+    onclick = anchor.get("onclick", "")
+    match = DETAIL_ONCLICK_PATTERN.search(onclick)
+    if not match:
+        return None
+
+    # BIT renders detail rows as href="#" links and stores the real transition
+    # parameters in tranPropertyDetail(saleUnitId, courtId, ...). Build the same
+    # detail endpoint URL so downstream scraping can continue via page.goto().
+    sale_unit_id = match.group("sale_unit_id")
+    court_id = match.group("court_id")
+    return urljoin(
+        base_url,
+        f"/app/propertyresult/pr001/h05?saleUnitId={sale_unit_id}&courtId={court_id}",
+    )
+
+
 def collect_detail_links(
     html: str, base_url: str, max_details: int | None
 ) -> list[ScrapeTarget]:
     soup = BeautifulSoup(html, "lxml")
     seen: set[str] = set()
     targets: list[ScrapeTarget] = []
-    for anchor in soup.find_all("a", href=True):
-        href = anchor.get("href", "")
-        absolute_url = urljoin(base_url, href)
-        if not DETAIL_URL_PATTERN.search(urlparse(absolute_url).path):
+    for anchor in soup.find_all("a"):
+        absolute_url = detail_url_from_anchor(anchor, base_url)
+        if absolute_url is None:
             continue
         if absolute_url in seen:
             continue
@@ -240,13 +264,11 @@ async def navigate_to_okayama_list(page: Page) -> None:
 
 async def log_link_summary(html: str, base_url: str) -> None:
     soup = BeautifulSoup(html, "lxml")
-    anchors = soup.find_all("a", href=True)
+    anchors = soup.find_all("a")
     detail_hrefs = [
-        urljoin(base_url, anchor.get("href", ""))
+        detail_url
         for anchor in anchors
-        if DETAIL_URL_PATTERN.search(
-            urlparse(urljoin(base_url, anchor.get("href", ""))).path
-        )
+        if (detail_url := detail_url_from_anchor(anchor, base_url)) is not None
     ]
     log_progress(
         f"collected list HTML: bytes={len(html.encode('utf-8'))} anchors={len(anchors)} detail_candidates={len(detail_hrefs)}"
