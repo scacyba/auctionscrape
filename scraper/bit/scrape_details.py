@@ -27,6 +27,7 @@ BIT_ENTRY_PATHS = {"", "/", "/app/areaselect/ps002/h04", "/app/top/pt001/h01"}
 OKAYAMA_ALL_PROPERTIES_BUTTON_TEXT = "選択した都道府県の全物件を検索する"
 DEFAULT_ERROR_ARTIFACT_DIR = "artifacts/bit-error"
 DETAIL_URL_PATTERN = re.compile(r"/app/propertyresult/")
+LOG_PREFIX = "[bit-scrape]"
 PDF_DOWNLOAD_TEXT = re.compile(
     r"3\s*点\s*セット.*ダウンロード|３\s*点\s*セット.*ダウンロード|三\s*点\s*セット.*ダウンロード"
 )
@@ -49,6 +50,18 @@ def normalize_start_url(start_url: str | None) -> str:
     if start_url is None or start_url.strip() == "":
         return DEFAULT_START_URL
     return start_url.strip()
+
+
+def log_progress(message: str) -> None:
+    print(f"{LOG_PREFIX} {message}", flush=True)
+
+
+async def log_page_state(page: Page, label: str) -> None:
+    try:
+        title = await page.title()
+    except Exception as title_error:
+        title = f"<title unavailable: {title_error}>"
+    log_progress(f"{label}: url={page.url} title={title!r}")
 
 
 def parse_max_details(raw_value: str | None) -> int | None:
@@ -102,20 +115,28 @@ def should_navigate_to_okayama(start_url: str) -> bool:
 async def wait_after_navigation_click(
     page: Page, expected_text: str | re.Pattern[str] | None = None
 ) -> None:
+    # BIT often performs full-page transitions after clicks; prefer networkidle but
+    # fall back to waiting for text that identifies the expected next screen.
     try:
+        log_progress("waiting for networkidle after click")
         await page.wait_for_load_state("networkidle", timeout=30_000)
+        await log_page_state(page, "networkidle reached")
         return
     except PlaywrightTimeoutError:
-        pass
+        log_progress("networkidle timed out; falling back to expected text wait")
     if expected_text is None:
         await page.wait_for_load_state("domcontentloaded", timeout=30_000)
         return
     await page.get_by_text(expected_text).first.wait_for(timeout=30_000)
+    await log_page_state(page, "expected text is visible")
 
 
 async def click_region_or_prefecture(
     page: Page, label: str, expected_text: str | re.Pattern[str] | None = None
 ) -> None:
+    log_progress(f"looking for region/prefecture control: {label}")
+    # Prefer user-visible/accessible locators; use attributes only as fallback for
+    # image maps and non-standard clickable controls on the court site.
     candidate_locators = [
         page.get_by_role("link", name=re.compile(label)).first,
         page.get_by_text(re.compile(label)).first,
@@ -126,12 +147,14 @@ async def click_region_or_prefecture(
     for locator in candidate_locators:
         try:
             await locator.wait_for(state="visible", timeout=5_000)
+            log_progress(f"clicking region/prefecture control: {label}")
             await locator.click()
             await wait_after_navigation_click(page, expected_text)
             return
         except PlaywrightTimeoutError:
             continue
 
+    log_progress(f"falling back to DOM search for: {label}")
     clicked = await page.evaluate(
         r"""
         label => {
@@ -157,6 +180,9 @@ async def click_region_or_prefecture(
 
 async def click_all_selected_prefecture_properties(page: Page) -> None:
     button_text = OKAYAMA_ALL_PROPERTIES_BUTTON_TEXT
+    log_progress(f"looking for all-properties button: {button_text}")
+    # After selecting Okayama, BIT requires this final confirmation button before
+    # it shows the property-result/list page.
     candidate_locators = [
         page.get_by_role("button", name=button_text).first,
         page.get_by_role("link", name=button_text).first,
@@ -168,6 +194,7 @@ async def click_all_selected_prefecture_properties(page: Page) -> None:
     for locator in candidate_locators:
         try:
             await locator.wait_for(state="visible", timeout=5_000)
+            log_progress(f"clicking all-properties button: {button_text}")
             await locator.click()
             await wait_after_navigation_click(
                 page, re.compile("物件|検索結果|一覧|売却")
@@ -176,6 +203,7 @@ async def click_all_selected_prefecture_properties(page: Page) -> None:
         except PlaywrightTimeoutError:
             continue
 
+    log_progress(f"falling back to DOM search for button: {button_text}")
     clicked = await page.evaluate(
         r"""
         buttonText => {
@@ -200,11 +228,42 @@ async def click_all_selected_prefecture_properties(page: Page) -> None:
 
 
 async def navigate_to_okayama_list(page: Page) -> None:
+    log_progress("starting top-page navigation to Okayama list")
+    await log_page_state(page, "before Okayama navigation")
     await click_region_or_prefecture(
         page, "中国", re.compile("岡山|鳥取|島根|広島|山口")
     )
     await click_region_or_prefecture(page, "岡山", OKAYAMA_ALL_PROPERTIES_BUTTON_TEXT)
     await click_all_selected_prefecture_properties(page)
+    await log_page_state(page, "after Okayama list navigation")
+
+
+async def log_link_summary(html: str, base_url: str) -> None:
+    soup = BeautifulSoup(html, "lxml")
+    anchors = soup.find_all("a", href=True)
+    detail_hrefs = [
+        urljoin(base_url, anchor.get("href", ""))
+        for anchor in anchors
+        if DETAIL_URL_PATTERN.search(
+            urlparse(urljoin(base_url, anchor.get("href", ""))).path
+        )
+    ]
+    log_progress(
+        f"collected list HTML: bytes={len(html.encode('utf-8'))} anchors={len(anchors)} detail_candidates={len(detail_hrefs)}"
+    )
+    if detail_hrefs:
+        for href in detail_hrefs[:5]:
+            log_progress(f"sample detail link: {href}")
+        return
+    # If no detail links were found, print a few visible anchors to identify which
+    # screen the workflow actually reached without dumping full page contents.
+    for index, anchor in enumerate(anchors[:10], start=1):
+        text = anchor.get_text(" ", strip=True)[:80]
+        href = urljoin(base_url, anchor.get("href", ""))
+        log_progress(f"sample anchor {index}: text={text!r} href={href}")
+    if not anchors:
+        body_text = soup.get_text(" ", strip=True)[:500]
+        log_progress(f"no anchors found; body text sample={body_text!r}")
 
 
 async def save_error_artifacts(page: Page, artifact_dir: str) -> None:
@@ -299,14 +358,28 @@ async def scrape(
         context = await browser.new_context(accept_downloads=True, locale="ja-JP")
         page = await context.new_page()
         try:
+            log_progress(
+                f"starting scrape: start_url={start_url} max_details={max_details}"
+            )
             await page.goto(start_url, wait_until="networkidle", timeout=60_000)
+            await log_page_state(page, "after initial goto")
             if should_navigate_to_okayama(start_url):
+                log_progress(
+                    "start URL is a BIT entry page; navigating through region UI"
+                )
                 await navigate_to_okayama_list(page)
+            else:
+                log_progress(
+                    "start URL is not an entry page; collecting links from current page"
+                )
             list_html = await page.content()
+            await log_link_summary(list_html, page.url)
             targets = collect_detail_links(list_html, page.url, max_details)
-            print(f"Found {len(targets)} detail links")
+            log_progress(f"found {len(targets)} detail links")
             for index, target in enumerate(targets, start=1):
-                print(f"[{index}/{len(targets)}] {target.detail_url}")
+                log_progress(
+                    f"processing detail {index}/{len(targets)}: {target.detail_url}"
+                )
                 await page.goto(
                     target.detail_url, wait_until="networkidle", timeout=60_000
                 )
@@ -317,9 +390,13 @@ async def scrape(
                 if pdf_key is None:
                     pdf_key = await download_pdf_by_click(page, storage, target)
                 if pdf_key is None:
-                    print(f"  saved html={html_key}; pdf=NOT_FOUND")
+                    log_progress(
+                        f"saved detail artifacts: html={html_key}; pdf=NOT_FOUND"
+                    )
                 else:
-                    print(f"  saved html={html_key}; pdf={pdf_key}")
+                    log_progress(
+                        f"saved detail artifacts: html={html_key}; pdf={pdf_key}"
+                    )
         except Exception:
             if error_artifact_dir:
                 try:
