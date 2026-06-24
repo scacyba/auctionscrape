@@ -38,6 +38,19 @@ class ScrapeTarget:
     stable_id: str
 
 
+def env_value_or_default(name: str, default: str) -> str:
+    value = os.getenv(name)
+    if value is None or value.strip() == "":
+        return default
+    return value
+
+
+def normalize_start_url(start_url: str | None) -> str:
+    if start_url is None or start_url.strip() == "":
+        return DEFAULT_START_URL
+    return start_url.strip()
+
+
 def parse_max_details(raw_value: str | None) -> int | None:
     if raw_value is None or raw_value == "":
         return None
@@ -79,6 +92,7 @@ def collect_detail_links(
 
 
 def should_navigate_to_okayama(start_url: str) -> bool:
+    start_url = normalize_start_url(start_url)
     parsed = urlparse(start_url)
     if parsed.netloc != BIT_HOST:
         return False
@@ -278,6 +292,7 @@ async def scrape(
     headless: bool,
     error_artifact_dir: str | None,
 ) -> None:
+    start_url = normalize_start_url(start_url)
     storage = R2Storage(R2Config.from_env())
     async with async_playwright() as p:
         browser = await p.chromium.launch(headless=headless)
@@ -325,7 +340,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "--start-url",
-        default=os.getenv("BIT_START_URL", DEFAULT_START_URL),
+        default=env_value_or_default("BIT_START_URL", DEFAULT_START_URL),
         help="BIT list/search-result URL to collect detail links from.",
     )
     parser.add_argument(
@@ -341,7 +356,9 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "--error-artifact-dir",
-        default=os.getenv("BIT_ERROR_ARTIFACT_DIR", DEFAULT_ERROR_ARTIFACT_DIR),
+        default=env_value_or_default(
+            "BIT_ERROR_ARTIFACT_DIR", DEFAULT_ERROR_ARTIFACT_DIR
+        ),
         help="Directory where screenshots and HTML are saved when scraping fails.",
     )
     return parser

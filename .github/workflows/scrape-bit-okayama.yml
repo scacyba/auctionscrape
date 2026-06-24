@@ -29,7 +29,7 @@ jobs:
           playwright install --with-deps chromium
       - name: Scrape detail HTML and PDFs to R2
         env:
-          BIT_START_URL: ${{ github.event.inputs.start_url || vars.BIT_START_URL }}
+          BIT_START_URL: ${{ github.event.inputs.start_url || vars.BIT_START_URL || 'https://www.bit.courts.go.jp/' }}
           SCRAPE_MAX_DETAILS: ${{ github.event.inputs.max_details || vars.SCRAPE_MAX_DETAILS }}
           R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
           R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
