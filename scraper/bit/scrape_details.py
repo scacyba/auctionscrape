@@ -351,15 +351,29 @@ async def download_pdf_by_click(
         return None
 
 
-async def open_detail_by_click(page: Page, target: ScrapeTarget) -> None:
+def detail_link_selector(target: ScrapeTarget) -> str:
     if target.sale_unit_id and target.court_id:
-        locator = page.locator(
-            f'a[onclick*="{target.sale_unit_id}"][onclick*="{target.court_id}"]'
-        ).first
-    else:
-        locator = page.locator(f'a[href="{target.detail_url}"]').first
+        # The real BIT list page renders detail links as href="#" anchors whose
+        # onclick calls tranPropertyDetail(saleUnitId, courtId, ...). The same IDs
+        # also appear in map links, so include the function name to avoid clicking
+        # "周辺地図" by mistake.
+        return (
+            f'a[onclick*="tranPropertyDetail"][onclick*="{target.sale_unit_id}"]'
+            f'[onclick*="{target.court_id}"]'
+        )
+    return f'a[href="{target.detail_url}"]'
+
+
+async def open_detail_by_click(page: Page, target: ScrapeTarget) -> None:
+    selector = detail_link_selector(target)
+    # On the actual list page each property has two detail anchors (the case-title
+    # text link and the thumbnail image). Prefer the visible title link because it
+    # is stable, descriptive, and appears before the image; fall back to any
+    # matching detail anchor if the class changes.
+    locator = page.locator(f"{selector}.bit__link").or_(page.locator(selector)).first
     log_progress(f"clicking detail link via Playwright: {target.detail_url}")
     await locator.wait_for(state="visible", timeout=10_000)
+    await locator.scroll_into_view_if_needed(timeout=10_000)
     await locator.click()
     await wait_after_navigation_click(
         page, re.compile("3点セット|３点セット|物件明細|現況調査|評価書")
