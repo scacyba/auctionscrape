@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import asyncio
 import hashlib
+import json
 import os
 import re
 import sys
@@ -42,6 +43,7 @@ class ScrapeTarget:
     stable_id: str
     sale_unit_id: str | None = None
     court_id: str | None = None
+    title: str | None = None
 
 
 def env_value_or_default(name: str, default: str) -> str:
@@ -85,12 +87,26 @@ def stable_id_from_url(url: str) -> str:
     return f"{path_slug}-{digest}"
 
 
+def normalize_text(value: str) -> str:
+    return re.sub(r"\s+", " ", value).strip()
+
+
+def title_from_anchor(anchor) -> str | None:
+    text = normalize_text(anchor.get_text(" ", strip=True))
+    if not text:
+        return None
+    first_line = normalize_text(text.split("売却基準価額")[0])
+    return first_line or text
+
+
 def scrape_target_from_anchor(anchor, base_url: str) -> ScrapeTarget | None:
     href = anchor.get("href", "")
     absolute_url = urljoin(base_url, href)
     if DETAIL_URL_PATTERN.search(urlparse(absolute_url).path):
         return ScrapeTarget(
-            detail_url=absolute_url, stable_id=stable_id_from_url(absolute_url)
+            detail_url=absolute_url,
+            stable_id=stable_id_from_url(absolute_url),
+            title=title_from_anchor(anchor),
         )
 
     onclick = anchor.get("onclick", "")
@@ -113,6 +129,7 @@ def scrape_target_from_anchor(anchor, base_url: str) -> ScrapeTarget | None:
         stable_id=stable_id_from_url(detail_url),
         sale_unit_id=sale_unit_id,
         court_id=court_id,
+        title=title_from_anchor(anchor),
     )
 
 
@@ -309,9 +326,18 @@ async def save_error_artifacts(page: Page, artifact_dir: str) -> None:
     )
 
 
-def dated_key(kind: str, stable_id: str, extension: str) -> str:
-    now = datetime.now(timezone.utc)
+def utc_today() -> datetime:
+    return datetime.now(timezone.utc)
+
+
+def dated_key(kind: str, stable_id: str, extension: str, now: datetime | None = None) -> str:
+    now = now or utc_today()
     return f"okayama/{kind}/{now:%Y/%m/%d}/{stable_id}.{extension}"
+
+
+def manifest_key(now: datetime | None = None) -> str:
+    now = now or utc_today()
+    return f"okayama/html/{now:%Y/%m/%d}/items.json"
 
 
 async def save_detail_html(page: Page, storage: R2Storage, target: ScrapeTarget) -> str:
@@ -321,11 +347,12 @@ async def save_detail_html(page: Page, storage: R2Storage, target: ScrapeTarget)
 
 
 async def download_pdf_by_click(
-    page: Page, storage: R2Storage, target: ScrapeTarget
+    page: Page, storage: R2Storage, target: ScrapeTarget, pdf_stable_id: str | None = None
 ) -> str | None:
-    locator = (
-        page.locator("#threeSetPDF").or_(page.get_by_text(PDF_DOWNLOAD_TEXT)).first
-    )
+    locator = page.locator(
+        'button:has(span.bit__download_btn_font:has-text("3点セット")), '
+        'button:has-text("3点セット"), #threeSetPDF'
+    ).or_(page.get_by_text(PDF_DOWNLOAD_TEXT)).first
     try:
         await locator.wait_for(timeout=5_000)
     except PlaywrightTimeoutError:
@@ -346,7 +373,7 @@ async def download_pdf_by_click(
             pdf_bytes = b"".join(chunks)
         else:
             pdf_bytes = await asyncio.to_thread(lambda: open(body, "rb").read())
-        key = dated_key("pdf", target.stable_id, "pdf")
+        key = dated_key("pdf", pdf_stable_id or target.stable_id, "pdf")
         return storage.put_bytes(key, pdf_bytes, "application/pdf")
     except PlaywrightTimeoutError:
         return None
@@ -375,6 +402,29 @@ async def open_detail_by_click(page: Page, target: ScrapeTarget) -> Page:
     await wait_after_navigation_click(page, DETAIL_PAGE_TEXT)
     await log_page_state(page, "after detail same-tab click")
     return page
+
+
+def extract_detail_title(html: str, fallback: str | None = None) -> str:
+    soup = BeautifulSoup(html, "lxml")
+    for selector in ('input[name$=".caseNoLink"]', 'input#caseNoLink'):
+        element = soup.select_one(selector)
+        if element and element.get("value"):
+            return normalize_text(element["value"])
+    text = normalize_text(soup.get_text(" ", strip=True))
+    match = re.search(r"岡山地方裁判所[^\s　]*[　\s]+令和\d+年[（(][ケヌ][）)]第\d+号", text)
+    if match:
+        return normalize_text(match.group(0))
+    return fallback or ""
+
+
+def save_manifest(storage: R2Storage, items: list[dict[str, str]]) -> str:
+    now = utc_today()
+    body = {"date": f"{now:%Y-%m-%d}", "items": items}
+    return storage.put_bytes(
+        manifest_key(now),
+        json.dumps(body, ensure_ascii=False, indent=2).encode("utf-8"),
+        "application/json; charset=utf-8",
+    )
 
 
 async def scrape(
@@ -415,6 +465,7 @@ async def scrape(
                 raise RuntimeError(
                     f"No detail links found after navigation; current_url={page.url}"
                 )
+            manifest_items: list[dict[str, str]] = []
             for index, target in enumerate(targets, start=1):
                 log_progress(
                     f"processing detail {index}/{len(targets)}: {target.detail_url}"
@@ -425,13 +476,22 @@ async def scrape(
                     await log_page_state(page, "after returning to list page")
                 detail_page = await open_detail_by_click(page, target)
                 try:
-                    html_key = await save_detail_html(detail_page, storage, target)
-                    pdf_key = await download_pdf_by_click(detail_page, storage, target)
+                    detail_html = await detail_page.content()
+                    title = extract_detail_title(detail_html, target.title)
+                    html_key = storage.put_bytes(
+                        dated_key("html", target.stable_id, "html"),
+                        detail_html.encode("utf-8"),
+                        "text/html; charset=utf-8",
+                    )
+                    pdf_key = await download_pdf_by_click(
+                        detail_page, storage, target, f"{index:03d}"
+                    )
                     if pdf_key is None:
                         log_progress(
                             f"saved detail artifacts: html={html_key}; pdf=NOT_FOUND"
                         )
                     else:
+                        manifest_items.append({"title": title, "pdf": pdf_key})
                         log_progress(
                             f"saved detail artifacts: html={html_key}; pdf={pdf_key}"
                         )
@@ -439,6 +499,8 @@ async def scrape(
                     if detail_page is not page:
                         log_progress("closing detail popup/tab")
                         await detail_page.close()
+            manifest_storage_key = save_manifest(storage, manifest_items)
+            log_progress(f"saved JSON manifest: {manifest_storage_key}")
         except Exception:
             if error_artifact_dir:
                 try:
