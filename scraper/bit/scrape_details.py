@@ -44,6 +44,7 @@ class ScrapeTarget:
     sale_unit_id: str | None = None
     court_id: str | None = None
     title: str | None = None
+    page_number: int = 1
 
 
 def env_value_or_default(name: str, default: str) -> str:
@@ -99,7 +100,9 @@ def title_from_anchor(anchor) -> str | None:
     return first_line or text
 
 
-def scrape_target_from_anchor(anchor, base_url: str) -> ScrapeTarget | None:
+def scrape_target_from_anchor(
+    anchor, base_url: str, page_number: int = 1
+) -> ScrapeTarget | None:
     href = anchor.get("href", "")
     absolute_url = urljoin(base_url, href)
     if DETAIL_URL_PATTERN.search(urlparse(absolute_url).path):
@@ -107,6 +110,7 @@ def scrape_target_from_anchor(anchor, base_url: str) -> ScrapeTarget | None:
             detail_url=absolute_url,
             stable_id=stable_id_from_url(absolute_url),
             title=title_from_anchor(anchor),
+            page_number=page_number,
         )
 
     onclick = anchor.get("onclick", "")
@@ -130,17 +134,18 @@ def scrape_target_from_anchor(anchor, base_url: str) -> ScrapeTarget | None:
         sale_unit_id=sale_unit_id,
         court_id=court_id,
         title=title_from_anchor(anchor),
+        page_number=page_number,
     )
 
 
 def collect_detail_links(
-    html: str, base_url: str, max_details: int | None
+    html: str, base_url: str, max_details: int | None, page_number: int = 1
 ) -> list[ScrapeTarget]:
     soup = BeautifulSoup(html, "lxml")
     seen: set[str] = set()
     targets: list[ScrapeTarget] = []
     for anchor in soup.find_all("a"):
-        target = scrape_target_from_anchor(anchor, base_url)
+        target = scrape_target_from_anchor(anchor, base_url, page_number)
         if target is None:
             continue
         if target.detail_url in seen:
@@ -150,6 +155,79 @@ def collect_detail_links(
         if max_details is not None and len(targets) >= max_details:
             break
     return targets
+
+
+GET_DATA_PATTERN = re.compile(r"getData\(\s*(?P<page>\d+)\s*\)")
+
+
+def collect_pagination_pages(html: str) -> list[int]:
+    soup = BeautifulSoup(html, "lxml")
+    pages: set[int] = set()
+    for anchor in soup.select(".pagination a[onclick]"):
+        match = GET_DATA_PATTERN.search(anchor.get("onclick", ""))
+        if not match:
+            continue
+        pages.add(int(match.group("page")))
+    return sorted(page for page in pages if page >= 1)
+
+
+async def navigate_to_result_page(page: Page, page_number: int) -> None:
+    log_progress(f"navigating list pagination to page {page_number}")
+    locator = page.locator(f'.pagination a[onclick*="getData({page_number})"]').first
+    try:
+        await locator.wait_for(state="visible", timeout=5_000)
+        await locator.click()
+    except PlaywrightTimeoutError:
+        invoked = await page.evaluate(
+            r"""
+            pageNumber => {
+              if (typeof getData !== 'function') return false;
+              getData(pageNumber);
+              return true;
+            }
+            """,
+            page_number,
+        )
+        if not invoked:
+            raise PlaywrightTimeoutError(f"Could not navigate to page {page_number}")
+    await wait_after_navigation_click(page, re.compile("物件|検索結果|一覧|売却"))
+
+
+async def collect_targets_from_all_pages(
+    page: Page, max_details: int | None
+) -> tuple[list[ScrapeTarget], str, int]:
+    base_url = page.url
+    seen_targets: set[str] = set()
+    visited_pages: set[int] = set()
+    pending_pages: list[int] = [1]
+    targets: list[ScrapeTarget] = []
+    current_page_number = 1
+
+    while pending_pages:
+        page_number = pending_pages.pop(0)
+        if page_number in visited_pages:
+            continue
+        if page_number != current_page_number:
+            await navigate_to_result_page(page, page_number)
+            current_page_number = page_number
+        list_html = await page.content()
+        await log_link_summary(list_html, base_url)
+        visited_pages.add(page_number)
+
+        for target in collect_detail_links(list_html, base_url, None, page_number):
+            if target.detail_url in seen_targets:
+                continue
+            seen_targets.add(target.detail_url)
+            targets.append(target)
+            if max_details is not None and len(targets) >= max_details:
+                return targets, base_url, current_page_number
+
+        for discovered_page in collect_pagination_pages(list_html):
+            if discovered_page not in visited_pages and discovered_page not in pending_pages:
+                pending_pages.append(discovered_page)
+        pending_pages.sort()
+
+    return targets, base_url, current_page_number
 
 
 def should_navigate_to_okayama(start_url: str) -> bool:
@@ -454,11 +532,10 @@ async def scrape(
                 log_progress(
                     "start URL is not an entry page; collecting links from current page"
                 )
-            list_page_url = page.url
-            list_html = await page.content()
-            await log_link_summary(list_html, list_page_url)
-            targets = collect_detail_links(list_html, list_page_url, max_details)
-            log_progress(f"found {len(targets)} detail links")
+            targets, list_page_url, current_list_page_number = await collect_targets_from_all_pages(
+                page, max_details
+            )
+            log_progress(f"found {len(targets)} detail links across list pages")
             if not targets:
                 # Treat an empty list as a scrape failure so GitHub Actions uploads
                 # the captured page state instead of silently succeeding.
@@ -474,6 +551,9 @@ async def scrape(
                     log_progress("returning to list page via browser history")
                     await page.go_back(wait_until="networkidle", timeout=60_000)
                     await log_page_state(page, "after returning to list page")
+                if target.page_number != current_list_page_number:
+                    await navigate_to_result_page(page, target.page_number)
+                    current_list_page_number = target.page_number
                 detail_page = await open_detail_by_click(page, target)
                 try:
                     detail_html = await detail_page.content()
