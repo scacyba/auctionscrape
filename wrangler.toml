@@ -1,0 +1,11 @@
+name = "auction-scraping-site"
+main = "website/worker.js"
+compatibility_date = "2026-06-24"
+
+[assets]
+directory = "./website/public"
+binding = "ASSETS"
+
+[[r2_buckets]]
+binding = "AUCTION_BUCKET"
+bucket_name = "auction-scraping"
