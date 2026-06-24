@@ -33,6 +33,7 @@ LOG_PREFIX = "[bit-scrape]"
 PDF_DOWNLOAD_TEXT = re.compile(
     r"3\s*点\s*セット.*ダウンロード|３\s*点\s*セット.*ダウンロード|三\s*点\s*セット.*ダウンロード"
 )
+DETAIL_PAGE_TEXT = re.compile("3点セット|３点セット|物件明細|現況調査|評価書")
 
 
 @dataclass(frozen=True)
@@ -351,7 +352,7 @@ async def download_pdf_by_click(
         return None
 
 
-async def open_detail_by_click(page: Page, target: ScrapeTarget) -> None:
+async def open_detail_by_click(page: Page, target: ScrapeTarget) -> Page:
     if target.sale_unit_id and target.court_id:
         locator = page.locator(
             f'a[onclick*="{target.sale_unit_id}"][onclick*="{target.court_id}"]'
@@ -360,11 +361,20 @@ async def open_detail_by_click(page: Page, target: ScrapeTarget) -> None:
         locator = page.locator(f'a[href="{target.detail_url}"]').first
     log_progress(f"clicking detail link via Playwright: {target.detail_url}")
     await locator.wait_for(state="visible", timeout=10_000)
-    await locator.click()
-    await wait_after_navigation_click(
-        page, re.compile("3点セット|３点セット|物件明細|現況調査|評価書")
-    )
-    await log_page_state(page, "after detail click")
+    try:
+        async with page.expect_popup(timeout=10_000) as popup_info:
+            await locator.click()
+        detail_page = await popup_info.value
+        log_progress("detail link opened in a popup/tab")
+        await wait_after_navigation_click(detail_page, DETAIL_PAGE_TEXT)
+        await log_page_state(detail_page, "after detail popup click")
+        return detail_page
+    except PlaywrightTimeoutError:
+        log_progress("detail link did not open a popup; falling back to same-tab navigation")
+
+    await wait_after_navigation_click(page, DETAIL_PAGE_TEXT)
+    await log_page_state(page, "after detail same-tab click")
+    return page
 
 
 async def scrape(
@@ -413,17 +423,22 @@ async def scrape(
                     log_progress("returning to list page via browser history")
                     await page.go_back(wait_until="networkidle", timeout=60_000)
                     await log_page_state(page, "after returning to list page")
-                await open_detail_by_click(page, target)
-                html_key = await save_detail_html(page, storage, target)
-                pdf_key = await download_pdf_by_click(page, storage, target)
-                if pdf_key is None:
-                    log_progress(
-                        f"saved detail artifacts: html={html_key}; pdf=NOT_FOUND"
-                    )
-                else:
-                    log_progress(
-                        f"saved detail artifacts: html={html_key}; pdf={pdf_key}"
-                    )
+                detail_page = await open_detail_by_click(page, target)
+                try:
+                    html_key = await save_detail_html(detail_page, storage, target)
+                    pdf_key = await download_pdf_by_click(detail_page, storage, target)
+                    if pdf_key is None:
+                        log_progress(
+                            f"saved detail artifacts: html={html_key}; pdf=NOT_FOUND"
+                        )
+                    else:
+                        log_progress(
+                            f"saved detail artifacts: html={html_key}; pdf={pdf_key}"
+                        )
+                finally:
+                    if detail_page is not page:
+                        log_progress("closing detail popup/tab")
+                        await detail_page.close()
         except Exception:
             if error_artifact_dir:
                 try:
