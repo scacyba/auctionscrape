@@ -1,0 +1,1255 @@
+
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="format-detection" content="telephone=no">
+<title>競売物件検索 | BIT 不動産競売物件情報サイト</title>
+<!-- Bootstrap -->
+<link href="../../common/lib/bootstrap/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="../../common/css/main.css" rel="stylesheet">
+</head>
+<body id="bit__body" onload="updateHeaderTabStatus()">
+	 <!-- header -->
+     <div>
+	<div>
+		<nav class="container-fluid mb-2 px-0">
+	<div class="bit__header_inner">
+		<div
+			class="bit__header_blankSpace d-flex justify-content-between align-items-center row">
+			<!-- flexbox_left -->
+			<div class="bit__header_flexbox_left col-9 col-sm-4 pl-0 pr-0">
+				<a href="/app/top/pt001/h01"> <img class="col-12 px-0"
+					src="../../common/images/logo.png" alt="BIT　不動産競売物件情報サイト">
+				</a>
+			</div>
+			<!-- flexbox_right -->
+			<div
+				class="bit__header_flexbox_right d-flex flex-column col-2 col-sm-8 pl-0 pr-0">
+				<!-- hamburger menu -->
+				<div class="bit__header_menu_sp d-flex d-sm-none mt-3 mb-3">
+					<button type="button" class="bit__header_btn_menu">
+						<i class="bit__header_btn_menu_icon"></i>
+					</button>
+				</div>
+				<div class="bit__header_menu col-sm-11 px-0">
+					<div class="bit__header_menu_inner">
+						<div
+							class="d-flex flex-column-reverse flex-sm-column justify-content-end">
+							<!-- header_linkbox -->
+							<ul
+								class="bit__header_linkbox d-flex flex-column flex-sm-row justify-content-sm-end mt-4 mt-sm-0 mx-0 mb-0 p-0">
+								<li class="pt-sm-2 pr-sm-0 pb-sm-2 pl-sm-4"><a href="/help/index.html"
+									class="d-block p-3 p-sm-0">使い方</a></li>
+								<li class="pt-sm-2 pr-sm-0 pb-sm-2 pl-sm-4"><a href="/guidance/index.html"
+									class="d-block p-3 p-sm-0">手続案内</a></li>
+								<li class="pt-sm-2 pr-sm-0 pb-sm-2 pl-sm-4"><a href="/info/index.html"
+									class="d-block p-3 p-sm-0">お知らせ</a></li>
+								<li class="pt-sm-2 pr-sm-0 pb-sm-2 pl-sm-4"><a href="/words/index.html"
+									class="d-block p-3 p-sm-0">用語集</a></li>
+								<li class="pt-sm-2 pr-sm-0 pb-sm-2 pl-sm-4"><a href="/faq/index.html"
+									class="d-block p-3 p-sm-0">FAQ</a></li>
+								<li class="pt-sm-2 pr-sm-0 pb-sm-2 pl-sm-4"><a href="/contact.html"
+									class="d-block p-3 p-sm-0">お問い合わせ</a></li>
+							</ul>
+							<!-- navbar -->
+							<ul class="bit__navbar d-flex flex-column flex-sm-row m-0 p-0">
+								<li id="kyobaiblock" class="py-0 py-sm-1 px-0 col-sm-3"><a
+									href="#" onclick="tranArea(&#39;property&#39;,&#39;&#39;);"
+									class="d-block p-3 p-sm-0 text-sm-center">競売物件</a></li>
+								<li id="baikyakublock" class="py-0 py-sm-1 px-0 col-sm-3"><a
+									href="#" onclick="tranArea(&#39;result&#39;,&#39;&#39;);"
+									class="d-block p-3 p-sm-0 text-sm-center">売却結果</a></li>
+								<li id="pastdatablock" class="py-0 py-sm-1 px-0 col-sm-3"><a
+									href="#" onclick="tranArea(&#39;past&#39;,&#39;&#39;);"
+									class="d-block p-3 p-sm-0 text-sm-center">過去データ</a></li>
+								<li id="schedule" class="py-0 py-sm-1 px-0 col-sm-3"><a
+									href="/schedule/index.html" 
+									class="d-block p-3 p-sm-0 text-sm-center">スケジュール</a></li>
+							</ul>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<!-- header_info -->
+	<div class="bit__header_info">
+		<div class="bit__header_blankSpace row">
+			<div class="col-12 py-2 px-0">
+				<p class="bit__text_small mb-0">
+					閲覧可能な競売物件は,<span class="bit__info_text_red mx-1">1,431</span>件です。（<span>2026年06月24日</span> <span>14</span>時現在）
+				</p>
+			</div>
+		</div>
+	</div>
+	<form id="headerForm" name="headerForm"
+		action="/app/area/pk001/h01" method="post">
+		<input type="hidden" id="menu_tabId" name="tabId">
+		<input type="hidden" id="menu_blockCls" name="blockCls">
+	</form>
+
+</nav>
+	</div>
+	
+</div>
+   
+	<!-- main content -->
+	<form id="searchareaselectForm" action="/app/areaselect/ps002/h17" method="post">
+	<main id="bit__main" class="container-fluid mb-5">
+		<div class="bit__main_wrapper">
+			<!-- breadcrumb -->
+			<nav aria-label="breadcrumb" class="row">
+				 <div class="col-12 px-0">
+                    <ul class="bit__breadcrumb breadcrumb d-none d-sm-flex p-0">
+                        <li class="breadcrumb-item"><a id="tranTop" href="/app/top/pt001/h01">ホーム</a></li>
+                        <li class="breadcrumb-item"><a href="#" onclick="tranArea(&#39;property&#39;, &quot;07&quot;);">地域選択</a></li>
+                        <li class="breadcrumb-item active" aria-current="page">競売物件検索</li>
+                    </ul>
+                </div>
+			</nav>
+
+			<div class="row mb-3">
+				<div class="col-12 px-0">
+                    <h1 class="bit__headline_1 bit__headline_popover mb-0 py-1 px-2 align-items-baseline">中国の物件を検索する
+                        <a role="button" class="bit__information_btn btn" data-toggle="popover" data-content="◆条件検索<br>
+                            システム上登録していない文字及び使用できない文字については，類似の文字を使用しており，正字ではない場合もあります。<br><br>
+                            本システムからダウンロードした「現況調査報告書」及び「評価書」に引用されている写真，資料及び図面は，本システム上は，添付されていない場合があります。<br><br>
+                            検索条件については，全てチェックされていない場合は全てチェックされたものとして動作します。<br><br>
+                            農地及び採草放牧地について買受申出が出来るのは，都道府県知事又は農業委員会等の交付した買受適格証明書を有する方に限られています。また，これらの方が最高価買受申出人等となったときは，売却決定期日までに，改めて都道府県知事等が交付する許可を証する書面または届出受理証明書を執行裁判所へ提出する必要があります。買受適格証明書の入手等については，その農地等の所在を管轄する都道府県事務所又は農業委員会等へお問い合わせください。"
+                            tabindex="0">
+                        </a>
+                    </h1>
+                </div>
+            </div>
+                
+			<div class="row mx-0 mb-2 mb-sm-3" style="display:none">
+                <div class="col-12 px-0">
+                    <div class="alert alert-danger bit__alert-danger p-3 p-sm-4 mb-0" role="alert">
+                    <span class="bit__alert-danger_heading mb-2 mb-sm-3">入力エラーです。以下の項目をご確認ください。</span><br>
+                    
+                    
+                    </div>
+                </div>
+            </div>
+			<div class="bit__tab_wrapper row mb-3">
+				<div class="col-12 px-0">
+					<ul class="bit__tab nav nav-tabs nav-justified col-12 flex-nowrap mb-3 px-0" role="tablist">
+						<li class="bit__tab_item nav-item text-center">
+							<a class="bit__tab_item_link nav-link border-top-0 border-right-0 border-left-0 py-2 py-sm-3 px-1" id="bloc-tab" role="tab" aria-selected="true">ブロックから探す</a>
+						</li>
+						<li class="bit__tab_item nav-item text-center">
+							<a class="bit__tab_item_link nav-link border-top-0 border-right-0 border-left-0 py-2 py-sm-3 px-1 active" id="chiiki-tab" data-toggle="tab" role="tab" aria-controls="chiiki" aria-selected="true">地域から探す</a>
+						</li>
+						<li class="bit__tab_item nav-item text-center">
+							<a class="bit__tab_item_link nav-link border-top-0 border-right-0 border-left-0 py-2 py-sm-3 px-1" id="ensen-tab" role="tab" aria-selected="true">沿線から探す</a>
+						</li>
+						<li class="bit__tab_item nav-item text-center">
+								<a class="bit__tab_item_link nav-link border-top-0 border-right-0 border-left-0 py-2 py-sm-3 px-1" id="saibansyo-tab" role="tab" aria-selected="true">裁判所から探す</a>
+						</li>
+						<li class="bit__tab_item nav-item text-center">
+							<a class="bit__tab_item_link nav-link border-top-0 border-right-0 border-left-0 py-2 py-sm-3 px-1" id="jikenbangou-tab" role="tab" aria-selected="true">事件番号から探す</a>
+						</li>
+					</ul>
+					<div class="tab-content" id="myTabContent">
+						<div class="tab-pane fade px-3 show active" id="chiiki" role="tabpanel" aria-labelledby="chiiki-tab">
+							<div class="row mb-4">
+								<div class="col-12 px-0">
+									<div class="bit__clickablemap">
+										<div class="col-12 align-items-center mx-0 mb-3 px-0 d-block d-sm-none">
+											<div class="align-items-center col-12 mx-0 px-0">
+												<select class="bit__clickablemaplink_select bit__select form-control col-12" id="prefecturesCondition" onchange="showSearchCondition(&#39;&#39;, &quot;2&quot;, &#39;&#39;);">
+													<option value="0">-</option>
+													<option value="31">鳥取県</option>
+													<option value="32">島根県</option>
+													<option value="33">岡山県</option>
+													<option value="34">広島県</option>
+													<option value="35">山口県</option>
+												</select>
+											</div>
+										</div>
+										<div class="form-contents mb-0 mb-sm-3">
+	<div class="bit__clickablemaplink_map justify-content-center col-12 d-none d-sm-flex position-relative">
+		<div class="bit__clickablemap_image">
+			
+			
+			
+			
+			
+			
+			<img src="../../common/images/clickablemap_chugoku.png" alt="中国地図" usemap="#bit__map_chugoku_chiiki">
+			
+			
+		</div>
+		
+		<map name="bit__map_hokkaidou_chiiki">
+			<area class="bit__clickablemap_map_asahikawa" shape="poly" alt="旭川" coords="198,5,275,5,352,5,299,139,222,139,144,139,198,5" href="#" onclick="showSearchCondition(&#39;93&#39;, &quot;2&quot;, &#39;asahikawa&#39;);">
+			<area class="bit__clickablemap_map_hakodate" shape="poly" alt="函館" coords="47,173,117,173,70,293,1,293,47,173" href="#" onclick="showSearchCondition(&#39;92&#39;, &quot;2&quot;, &#39;hakodate&#39;);">
+			<area class="bit__clickablemap_map_kushiro" shape="poly" alt="釧路" coords="325,234,364,139,313,139,367,5,445,5,524,5,496,72,468,139,468,139,428,234,325,234" href="#" onclick="showSearchCondition(&#39;94&#39;, &quot;2&quot;, &#39;kushiro&#39;);">
+			<area class="bit__clickablemap_map_sapporo" shape="poly" alt="札幌" coords="200,293,82,293,111,222,140,151,244,151,348,151,308,245,425,245,405,293,303,293,200,293" href="#" onclick="showSearchCondition(&#39;91&#39;, &quot;2&quot;, &#39;sapporo&#39;);">
+		</map>
+		
+		<map name="bit__map_touhoku_chiiki">
+			<area class="bit__clickablemap_map_akita" shape="poly" alt="秋田" coords="90,56,170,56,139,139,62,139,90,56" href="#" onclick="showSearchCondition(&#39;05&#39;, &quot;2&quot;, &#39;akita&#39;);">
+			<area class="bit__clickablemap_map_aomori" shape="poly" alt="青森" coords="109,3,205,3,301,3,286,45,191,45,95,45,109,3" href="#" onclick="showSearchCondition(&#39;02&#39;, &quot;2&quot;, &#39;aomori&#39;);">
+			<area class="bit__clickablemap_map_fukushima" shape="poly" alt="福島" coords="28,233,122,233,217,233,195,290,100,290,5,290,28,233" href="#" onclick="showSearchCondition(&#39;07&#39;, &quot;2&quot;, &#39;fukushima&#39;);">
+			<area class="bit__clickablemap_map_iwate" shape="poly" alt="岩手" coords="183,56,281,56,244,154,147,154,183,56" href="#" onclick="showSearchCondition(&#39;03&#39;, &quot;2&quot;, &#39;iwate&#39;);">
+			<area class="bit__clickablemap_map_miyagi" shape="poly" alt="宮城" coords="147,166,241,166,221,221,127,221,147,166" href="#" onclick="showSearchCondition(&#39;04&#39;, &quot;2&quot;, &#39;miyagi&#39;);">
+			<area class="bit__clickablemap_map_yamagata" shape="poly" alt="山形" coords="57,151,138,151,112,221,31,221,57,151" href="#" onclick="showSearchCondition(&#39;06&#39;, &quot;2&quot;, &#39;yamagata&#39;);">
+		</map>
+		
+		<map name="bit__map_kantou_chiiki">
+			<area class="bit__clickablemap_map_gunma" shape="poly" alt="群馬" coords="113,4,222,4,196,76,87,76,113,4" href="#" onclick="showSearchCondition(&#39;10&#39;, &quot;2&quot;, &#39;gunma&#39;);">
+			<area class="bit__clickablemap_map_tochigi" shape="poly" alt="栃木" coords="236,4,345,4,319,76,210,76,236,4" href="#" onclick="showSearchCondition(&#39;09&#39;, &quot;2&quot;, &#39;tochigi&#39;);">
+			<area class="bit__clickablemap_map_ibaraki" shape="poly" alt="茨城" coords="357,4,449,4,412,105,320,105,357,4" href="#" onclick="showSearchCondition(&#39;08&#39;, &quot;2&quot;, &#39;ibaraki&#39;);">
+			<area class="bit__clickablemap_map_saitama" shape="poly" alt="埼玉" coords="81,88,191,88,301,88,281,142,171,142,61,142,81,88" href="#" onclick="showSearchCondition(&#39;11&#39;, &quot;2&quot;, &#39;saitama&#39;);">
+			<area class="bit__clickablemap_map_tokyo" shape="poly" alt="東京" coords="58,154,55,161,50,176,44,192,39,206,36,212,141,212,144,205,185,205,204,154,131,154,58,154" href="#" onclick="showSearchCondition(&#39;13&#39;, &quot;2&quot;, &#39;tokyo&#39;);">
+			<area class="bit__clickablemap_map_kanagawa" shape="poly" alt="神奈川" coords="32,224,137,224,111,293,6,293,32,224" href="#" onclick="showSearchCondition(&#39;14&#39;, &quot;2&quot;, &#39;kanagawa&#39;);">
+			<area class="bit__clickablemap_map_chiba" shape="poly" alt="千葉" coords="317,117,409,117,379,200,348,284,256,284,287,200,317,117" href="#" onclick="showSearchCondition(&#39;12&#39;, &quot;2&quot;, &#39;chiba&#39;);">
+		</map>
+		
+		<map name="bit__map_hokurikukoushinetsu_chiiki">
+			<area class="bit__clickablemap_map_fukui" shape="poly" alt="福井" coords="44,143,109,143,74,247,5,247,44,143" href="#" onclick="showSearchCondition(&#39;18&#39;, &quot;2&quot;, &#39;fukui&#39;);">
+			<area class="bit__clickablemap_map_ishikawa" shape="poly" alt="石川" coords="94,1,158,1,114,132,48,132,94,1" href="#" onclick="showSearchCondition(&#39;17&#39;, &quot;2&quot;, &#39;ishikawa&#39;);">
+			<area class="bit__clickablemap_map_nagano" shape="poly" alt="長野" coords="225,197,257,121,269,121,288,68,419,68,400,126,373,126,349,197,225,197" href="#" onclick="showSearchCondition(&#39;20&#39;, &quot;2&quot;, &#39;nagano&#39;);">
+			<area class="bit__clickablemap_map_niigata" shape="poly" alt="新潟" coords="306,1,417,1,529,1,513,56,401,56,288,56,306,1" href="#" onclick="showSearchCondition(&#39;15&#39;, &quot;2&quot;, &#39;niigata&#39;);">
+			<area class="bit__clickablemap_map_toyama" shape="poly" alt="富山" coords="175,1,289,1,266,72,152,72,175,1" href="#" onclick="showSearchCondition(&#39;16&#39;, &quot;2&quot;, &#39;toyama&#39;);">
+			<area class="bit__clickablemap_map_yamanashi" shape="poly" alt="山梨" coords="376,140,482,140,464,197,358,197,376,140" href="#" onclick="showSearchCondition(&#39;19&#39;, &quot;2&quot;, &#39;yamanashi&#39;);">
+		</map>
+		
+		<map name="bit__map_toukai_chiiki">
+			<area class="bit__clickablemap_map_aichi" shape="poly" alt="愛知" coords="169,145,289,145,260,225,140,225,169,145" href="#" onclick="showSearchCondition(&#39;23&#39;, &quot;2&quot;, &#39;aichi&#39;);">
+			<area class="bit__clickablemap_map_gifu" shape="poly" alt="岐阜" coords="110,0,206,0,303,0,256,129,159,129,63,129,110,0" href="#" onclick="showSearchCondition(&#39;21&#39;, &quot;2&quot;, &#39;gifu&#39;);">
+			<area class="bit__clickablemap_map_mie" shape="poly" alt="三重" coords="57,145,154,145,128,217,102,289,3,289,30,217,57,145" href="#" onclick="showSearchCondition(&#39;24&#39;, &quot;2&quot;, &#39;mie&#39;);">
+			<area class="bit__clickablemap_map_shizuoka" shape="poly" alt="静岡" coords="400,46,379,101,320,101,288,189,374,189,374,189,373,189,398,122,460,122,436,189,465,189,491,118,517,46,400,46" href="#" onclick="showSearchCondition(&#39;22&#39;, &quot;2&quot;, &#39;shizuoka&#39;);">
+		</map>
+		
+		<map name="bit__map_kinki_chiiki">
+			<area class="bit__clickablemap_map_hyougo" shape="poly" alt="兵庫" coords="58,3,142,3,114,79,87,155,3,155,31,79,58,3" href="#" onclick="showSearchCondition(&#39;28&#39;, &quot;2&quot;, &#39;hyougo&#39;);">
+			<area class="bit__clickablemap_map_kyoto" shape="poly" alt="京都" coords="160,3,244,3,205,111,122,111,160,3" href="#" onclick="showSearchCondition(&#39;26&#39;, &quot;2&quot;, &#39;kyoto&#39;);">
+			<area class="bit__clickablemap_map_nara" shape="poly" alt="奈良" coords="198,150,282,150,237,276,152,276,198,150" href="#" onclick="showSearchCondition(&#39;29&#39;, &quot;2&quot;, &#39;nara&#39;);">
+			<area class="bit__clickablemap_map_osaka" shape="poly" alt="大阪" coords="115,123,188,123,164,189,90,189,115,123" href="#" onclick="showSearchCondition(&#39;27&#39;, &quot;2&quot;, &#39;osaka&#39;);">
+			<area class="bit__clickablemap_map_shiga" shape="poly" alt="滋賀" coords="245,55,315,55,283,139,214,139,245,55" href="#" onclick="showSearchCondition(&#39;25&#39;, &quot;2&quot;, &#39;shiga&#39;);">
+			<area class="bit__clickablemap_map_wakayama" shape="poly" alt="和歌山" coords="67,202,157,202,126,291,34,291,67,202" href="#" onclick="showSearchCondition(&#39;30&#39;, &quot;2&quot;, &#39;wakayama&#39;);">
+		</map>
+		
+		<map name="bit__map_chugoku_chiiki">
+			<area class="bit__clickablemap_map_hiroshima" shape="poly" alt="広島" coords="162,88,250,88,338,88,284,211,196,211,107,211,162,88" href="#" onclick="showSearchCondition(&#39;34&#39;, &quot;2&quot;, &#39;hiroshima&#39;);">
+			<area class="bit__clickablemap_map_okayama" shape="poly" alt="岡山" coords="356,75,431,75,505,75,457,194,382,194,307,194,356,75" href="#" onclick="showSearchCondition(&#39;33&#39;, &quot;2&quot;, &#39;okayama&#39;);">
+			<area class="bit__clickablemap_map_shimane" shape="poly" alt="島根" coords="191,3,283,3,374,3,342,76,252,76,161,76,191,3" href="#" onclick="showSearchCondition(&#39;32&#39;, &quot;2&quot;, &#39;shimane&#39;);">
+			<area class="bit__clickablemap_map_tottori" shape="poly" alt="鳥取" coords="389,3,462,3,536,3,512,63,437,63,362,63,389,3" href="#" onclick="showSearchCondition(&#39;31&#39;, &quot;2&quot;, &#39;tottori&#39;);">
+			<area class="bit__clickablemap_map_yamaguchi" shape="poly" alt="山口" coords="38,56,153,56,118,134,3,134,38,56" href="#" onclick="showSearchCondition(&#39;35&#39;, &quot;2&quot;, &#39;yamaguchi&#39;);">
+		</map>
+		
+		<map name="bit__map_shikoku_chiiki">
+			<area class="bit__clickablemap_map_ehime" shape="poly" alt="愛媛" coords="63,2,175,2,287,2,260,72,148,72,36,72,63,2" href="#" onclick="showSearchCondition(&#39;38&#39;, &quot;2&quot;, &#39;ehime&#39;);">
+			<area class="bit__clickablemap_map_kagawa" shape="poly" alt="香川" coords="308,2,439,2,423,48,290,48,308,2" href="#" onclick="showSearchCondition(&#39;37&#39;, &quot;2&quot;, &#39;kagawa&#39;);">
+			<area class="bit__clickablemap_map_kouchi" shape="poly" alt="高知" coords="34,84,158,84,282,84,252,161,128,161,4,161,34,84" href="#" onclick="showSearchCondition(&#39;39&#39;, &quot;2&quot;, &#39;kouchi&#39;);">
+			<area class="bit__clickablemap_map_tokushima" shape="poly" alt="徳島" coords="310,60,417,60,381,161,272,161,310,60" href="#" onclick="showSearchCondition(&#39;36&#39;, &quot;2&quot;, &#39;tokushima&#39;);">
+		</map>
+		
+		<map name="bit__map_kyusyuokinawa_chiiki">
+			<area class="bit__clickablemap_map_fukuoka" shape="poly" alt="福岡" coords="266,2,323,2,297,74,240,74,266,2" href="#" onclick="showSearchCondition(&#39;40&#39;, &quot;2&quot;, &#39;fukuoka&#39;);">
+			<area class="bit__clickablemap_map_kagoshima" shape="poly" alt="鹿児島" coords="184,215,309,215,282,290,156,290,184,215" href="#" onclick="showSearchCondition(&#39;46&#39;, &quot;2&quot;, &#39;kagoshima&#39;);">
+			<area class="bit__clickablemap_map_kumamoto" shape="poly" alt="熊本" coords="222,85,279,85,243,179,187,179,222,85" href="#" onclick="showSearchCondition(&#39;43&#39;, &quot;2&quot;, &#39;kumamoto&#39;);">
+			<area class="bit__clickablemap_map_miyazaki" shape="poly" alt="宮崎" coords="284,98,352,98,313,203,244,203,284,98" href="#" onclick="showSearchCondition(&#39;45&#39;, &quot;2&quot;, &#39;miyazaki&#39;);">
+			<area class="bit__clickablemap_map_nagasaki" shape="poly" alt="長崎" coords="138,2,192,2,151,110,96,110,138,2" href="#" onclick="showSearchCondition(&#39;42&#39;, &quot;2&quot;, &#39;nagasaki&#39;);">
+			<area class="bit__clickablemap_map_oita" shape="poly" alt="大分" coords="333,2,387,2,357,87,302,87,333,2" href="#" onclick="showSearchCondition(&#39;44&#39;, &quot;2&quot;, &#39;oita&#39;);">
+			<area class="bit__clickablemap_map_okinawa" shape="poly" alt="沖縄" coords="29,224,76,224,53,290,4,290,29,224" href="#" onclick="showSearchCondition(&#39;47&#39;, &quot;2&quot;, &#39;okinawa&#39;);">
+			<area class="bit__clickablemap_map_saga" shape="poly" alt="佐賀" coords="203,2,253,2,234,59,182,59,203,2" href="#" onclick="showSearchCondition(&#39;41&#39;, &quot;2&quot;, &#39;saga&#39;);">
+		</map>
+	</div>
+</div>
+										<div id="bit__clickablemaplink_contents" class="bit__clickablemaplink_contents" style="display: none;">
+											<div class="row mb-3">
+												<div class="d-sm-flex col-12">
+													<button type="button" class="bit__btn_secondary btn btn-secondary col-12 col-sm-3 mt-2 mt-sm-0 ml-md-2" onclick="tranAllAreaSearch();">選択した都道府県の全物件を検索する</button>
+												</div>
+											</div>
+											<div class="bit__collapseBtn_container">
+												<div class="bit__collapseMenuLink_body col-12 px-0 mb-3">
+													<div class="bit__collapseMenuLink_info">※システム上登録していない文字及び使用できない文字については類似の文字を使用しております。ご了承ください。</div>
+													
+													<div class="row mt-3 px-0 mb-sm-2">
+														<div class="col-12 col-sm-3 mb-2 mb-sm-0"></div>
+														<div class="col-12 col-sm-9 px-sm-0 mb-3 mb-sm-0">
+															<button id="btnAllPlaceOn1" type="button" class="bit__btn_secondary bit__btn_small btn btn-secondary">全選択</button>
+															<button id="btnAllPlaceOff1" type="button" class="bit__btn_secondary bit__btn_small btn btn-secondary ml-2">全解除</button>
+														</div>
+													</div>
+													<div class="bit__collapseMenuLink_checkboxArea row m-0" id="otherMunicipalityIdArea">
+														<div class="row col-12 mx-0 px-0">
+															
+														</div>
+													</div>
+												</div>
+												<fieldset class="mb-3">
+													<div class="form-contents">
+														<table class="table table-borderless bit__table mb-0">
+															<tbody>
+																<tr class="d-flex d-sm-table-row flex-column">
+																	<th class="d-flex d-sm-table-cell" scope="row">種別</th>
+																	<td class="row mx-0">
+																		<div class="col-sm-9 col-12 mb-2 mb-sm-0">
+																			<div class="row">
+				                                                                <div class="col-12 px-0">
+				                                                                    <div class="form-check form-check-inline col-12 col-sm-2 mx-0">
+																						<input class="form-check-input mr-3 mr-sm-1" type="checkbox" id="saleClsLand" name="saleCls" value="1" checked="checked">
+						                												<label class="form-check-label bit__text_normal" for="saleClsLand">土地</label>
+																					</div>
+																					<div class="form-check form-check-inline col-12 col-sm-2 mt-2 mt-sm-0 mx-0">
+																						<input class="form-check-input mr-3 mr-sm-1" type="checkbox" id="saleClsDetached" name="saleCls" value="2" checked="checked">
+						                												<label class="form-check-label bit__text_normal" for="saleClsDetached">戸建て</label>
+																					</div>
+																					<div class="form-check form-check-inline col-12 col-sm-3 mt-2 mt-sm-0 mx-0">
+																						<input class="form-check-input mr-3 mr-sm-1" type="checkbox" id="saleClsMansion" name="saleCls" value="3" checked="checked">
+						                												<label class="form-check-label bit__text_normal" for="saleClsMansion">マンション</label>
+																					</div>
+																					<div class="form-check form-check-inline col-12 col-sm-2 mt-2 mt-sm-0 mx-0">
+																						<input class="form-check-input mr-3 mr-sm-1" type="checkbox" id="saleClsOther" name="saleCls" value="4" checked="checked">
+					                     												<label class="form-check-label bit__text_normal" for="saleClsOther">その他</label>
+																					</div>
+				                                                                </div>
+				                                                            </div>
+																		</div>
+																		<div class="col-sm-3 col-12 px-0">
+																			<div class="row mx-0">
+																				<div class="col-12 px-0 text-sm-right">
+																					<button id="btnSaleClsAllSelect" type="button" class="bit__btn_secondary bit__btn_small btn btn-secondary">全選択</button>
+																					<button id="btnSaleClsAllRelease" type="button" class="bit__btn_secondary bit__btn_small btn btn-secondary ml-2">全解除</button>
+																				</div>
+																			</div>
+																		</div>
+																	</td>
+																</tr>
+																<tr class="d-flex d-sm-table-row flex-column">
+			                                                    <th class="d-flex d-sm-table-cell" scope="row">売却基準価額の範囲</th>
+			                                                    <td class="d-flex flex-column">
+			                                                        <div class="d-flex align-items-sm-center mb-2">
+			                                                            <div class="form-check">
+			                                                                <input class="form-check-input mr-3 mr-sm-1 position-static" type="radio" name="saleStandardAmountCls" id="saleStandardAmountCls1" value="1" aria-label="..." checked="checked">
+			                                                            </div>
+			                                                            <div class="d-sm-flex col align-items-center mx-0 px-0">
+			                                                                <div class="d-flex align-items-center col-12 col-sm-4 mx-0 px-0">
+			                                                                    <select class="bit__select form-control col-8 col-sm-9" name="saleStandardAmountMin" id="saleStandardAmountLowerSelect">
+			                                                                        <option value="0">下限なし</option>
+			                                                                        <option value="100">100万円</option>
+			                                                                        <option value="200">200万円</option>
+			                                                                        <option value="300">300万円</option>
+			                                                                        <option value="400">400万円</option>
+			                                                                        <option value="500">500万円</option>
+			                                                                        <option value="600">600万円</option>
+			                                                                        <option value="700">700万円</option>
+			                                                                        <option value="800">800万円</option>
+			                                                                        <option value="900">900万円</option>
+			                                                                        <option value="1000">1,000万円</option>
+			                                                                        <option value="2000">2,000万円</option>
+			                                                                        <option value="3000">3,000万円</option>
+			                                                                        <option value="4000">4,000万円</option>
+			                                                                        <option value="5000">5,000万円</option>
+			                                                                        <option value="6000">6,000万円</option>
+			                                                                        <option value="7000">7,000万円</option>
+			                                                                        <option value="8000">8,000万円</option>
+			                                                                        <option value="9000">9,000万円</option>
+			                                                                        <option value="10000">1億円</option>
+			                                                                    </select>
+			                                                                    <p class="bit__text_normal col-4 col-sm-3 mb-0">～</p>
+			                                                                </div>
+			                                                                <select class="bit__select form-control col-8 col-sm-3 mt-2 mt-sm-0" name="saleStandardAmountMax" id="saleStandardAmountUpperSelect">
+			                                                                    <option value="0">上限なし</option>
+			                                                                    <option value="10000">1億円</option>
+			                                                                    <option value="9000">9,000万円</option>
+			                                                                    <option value="8000">8,000万円</option>
+			                                                                    <option value="7000">7,000万円</option>
+			                                                                    <option value="6000">6,000万円</option>
+			                                                                    <option value="5000">5,000万円</option>
+			                                                                    <option value="4000">4,000万円</option>
+			                                                                    <option value="3000">3,000万円</option>
+			                                                                    <option value="2000">2,000万円</option>
+			                                                                    <option value="1000">1,000万円</option>
+			                                                                    <option value="900">900万円</option>
+			                                                                    <option value="800">800万円</option>
+			                                                                    <option value="700">700万円</option>
+			                                                                    <option value="600">600万円</option>
+			                                                                    <option value="500">500万円</option>
+			                                                                    <option value="400">400万円</option>
+			                                                                    <option value="300">300万円</option>
+			                                                                    <option value="200">200万円</option>
+			                                                                    <option value="100">100万円</option>
+			                                                                </select>
+			                                                            </div>
+			                                                        </div>
+			                                                        <div class="d-flex align-items-sm-center">
+			                                                            <div class="form-check">
+			                                                                <input class="form-check-input mr-3 mr-sm-1 position-static" type="radio" name="saleStandardAmountCls" id="saleStandardAmountCls2" value="2" aria-label="...">
+			                                                            </div>
+			                                                            <div class="d-sm-flex col align-items-center mx-0 px-0">
+			                                                                <div class="d-flex col-12 col-sm-4 align-items-center mx-0 px-0">
+			                                                                    <input class="bit__textbox form-control col-8" type="text" maxlength="7" name="saleStandardAmountTextMin" id="saleStandardAmountLower" value="" oninput="value=value.replace(/[^0-9]+/i,'');" pattern="[0-9]*" disabled="disabled">
+			                                                                    <span class="bit__text_normal d-block col-4 mb-0">万円〜</span>
+			                                                                </div>
+			                                                                <div class="d-flex col-12 col-sm-4 align-items-center mt-2 mt-sm-0 mx-0 px-0">
+			                                                                    <input class="bit__textbox form-control col-8" type="text" maxlength="7" name="saleStandardAmountTextMax" id="saleStandardAmountUpper" value="" oninput="value=value.replace(/[^0-9]+/i,'');" pattern="[0-9]*" disabled="disabled">
+			                                                                    <span class="bit__text_normal d-block col-4 mb-0">万円</span>
+			                                                                </div>
+			                                                            </div>
+			                                                        </div>
+			                                                    </td>
+			                                                </tr>
+															</tbody>
+														</table>
+													</div>
+												</fieldset>
+												<div class="d-sm-flex justify-content-between col-12 mt-4 px-0">
+													<div class="col-12 col-sm-6 px-0">
+														<button id="btnClear" type="button" class="bit__btn_secondary btn btn-secondary col-12 col-sm-4">条件をクリア</button>
+													</div>
+													<div class="d-sm-flex justify-content-end col-12 col-sm-6 mt-2 mt-sm-0 px-0">
+														<button id="btnDetail" type="button" class="bit__btn_secondary btn btn-secondary col-12 col-sm-4 bit__collapseBtn_syosaiOpen collapsed" data-toggle="collapse" data-target="#bit__collapseBtn_target" aria-expanded="false" aria-controls="bit__collapseBtn_target">詳しい条件を設定する</button>
+														<button type="button" class="bit__btn_primary btn btn-primary col-12 col-sm-4 mt-2 mt-sm-0 ml-md-2" onclick="tranResultSearch(&#39;2&#39;);">検索</button>
+													</div>
+												</div>
+												<div class="row col-12 mx-0 px-0 bit__collapseBtn_collapseArea collapse" id="bit__collapseBtn_target" style="display:none">
+													<div>
+	<div id="landClsBlock" >
+		<table class="table table-borderless bit__table mt-3">
+			<caption>土地</caption>
+			<tbody>
+				<tr class="d-flex d-sm-table-row flex-column">
+					<th class="d-flex d-sm-table-cell bit__flexbox_flexbasis_auto" scope="row">地目</th>
+					<td class="d-flex flex-column flex-sm-row justify-content-sm-between bit__flexbox_flexbasis_auto">
+						<div class="row col-12 align-items-center mx-0 px-0 bit__flexbox_flexbasis_auto">
+							<select class="bit__select form-control col-8 col-sm-3" id="landCategory" name="detailAreaInfoDto.landCls">
+								<option value="00">指定なし</option>
+								<option value="10">宅地</option>
+								<option value="40">田</option>
+								<option value="50">畑</option>
+								<option value="60">牧場</option>
+								<option value="71">山林</option>
+								<option value="73">原野</option>
+								<option value="90">雑種地</option>
+								<option value="99">その他</option>
+							</select>
+						</div>
+					</td>
+				</tr>
+				<tr class="d-flex d-sm-table-row flex-column">
+					<th class="d-flex d-sm-table-cell bit__flexbox_flexbasis_auto" scope="row">土地の利用状況</th>
+					<td class="d-flex flex-column flex-sm-row">
+						<div class="row col-12 mx-0 px-0 bit__flexbox_flexbasis_auto">
+							<div class="form-check form-check-inline col-12 col-sm-2 mt-2 mt-sm-0 mx-0">
+								<input class="form-check-input mr-3 mr-sm-1" type="checkbox" name="detailAreaInfoDto.landConditionClsList" id="landConditionClsList" value="1"><input type="hidden" name="_detailAreaInfoDto.landConditionClsList" value="on"/>
+								<label class="form-check-label" for="landConditionClsList">更地</label>
+							</div>
+						</div>
+					</td>
+				</tr>
+				<tr class="d-flex d-sm-table-row flex-column">
+					<th class="d-flex d-sm-table-cell bit__flexbox_flexbasis_auto" scope="row">土地面積</th>
+					<td class="d-flex flex-column">
+						<div class="row col-12 align-items-center px-0 bit__flexbox_flexbasis_auto">
+							<div class="row col-12 col-sm-5 align-items-center mx-0">
+								<input class="bit__textbox form-control col-8" type="text" maxlength="13" id="landAreaLower" name="detailAreaInfoDto.landAreaMin" oninput="value=value.replace(/[^0-9.]+/i,'');" inputmode="decimal" value="">
+								<p class="col-4 mb-0">㎡以上</p>
+							</div>
+							<div class="row col-12 col-sm-5 align-items-center mt-2 mt-sm-0 mx-0">
+								<input class="bit__textbox form-control col-8" type="text" maxlength="13" id="landAreaUpper" name="detailAreaInfoDto.landAreaMax" oninput="value=value.replace(/[^0-9.]+/i,'');" inputmode="decimal" value="">
+								<p class="col-4 mb-0">㎡以下</p>
+							</div>
+						</div>
+						<div class="row mx-0">
+							<div class="col-12 px-0">
+								<p class="bit__text_small mb-0">半角数字で小数点第2位まで入力可能です。 小数点は半角の「.」を入力します。</p>
+							</div>
+						</div>
+					</td>
+				</tr>
+			</tbody>
+		</table>
+	</div>
+	<div id="detachedBlock" style="display:(${searchInfoDto.saleClsList != null?(searchInfoDto.saleClsList.contains(&#39;2&#39;)?&#39;block&#39;:&#39;none&#39;}):&#39;none&#39;)">
+		<table class="table table-borderless bit__table mb-0">
+			<caption>戸建て</caption>
+			<tbody>
+				<tr class="d-flex d-sm-table-row flex-column">
+					<th class="d-flex d-sm-table-cell bit__flexbox_flexbasis_auto" scope="row">床面積</th>
+					<td class="d-flex flex-column">
+						<div class="row col-12 align-items-center px-0 bit__flexbox_flexbasis_auto">
+							<div class="row col-12 col-sm-5 align-items-center mx-0">
+								<input class="bit__textbox form-control col-8" type="text" maxlength="13" id="floorAreaLower" name="detailAreaInfoDto.detachedFloorAreaMin" oninput="value=value.replace(/[^0-9.]+/i,'');" inputmode="decimal" value="">
+								<span class="d-block col-4 mb-0">㎡以上</span>
+							</div>
+							<div class="row col-12 col-sm-5 align-items-center mt-2 mt-sm-0 mx-0">
+								<input class="bit__textbox form-control col-8" type="text" maxlength="13" id="floorAreaUpper" name="detailAreaInfoDto.detachedFloorAreaMax" oninput="value=value.replace(/[^0-9.]+/i,'');" inputmode="decimal" value="">
+								<span class="d-block col-4 mb-0">㎡以下</span>
+							</div>
+						</div>
+						<div class="row mx-0">
+							<div class="col-12 px-0">
+								<p class="bit__text_small mb-0">半角数字で小数点第2位まで入力可能です。 小数点は半角の「.」を入力します。</p>
+							</div>
+						</div>
+					</td>
+				</tr>
+				<tr class="d-flex d-sm-table-row flex-column">
+					<th class="d-flex d-sm-table-cell bit__flexbox_flexbasis_auto" scope="row">構造</th>
+					<td class="d-flex flex-column">
+						<div class="row col-12 align-items-center px-0 bit__flexbox_flexbasis_auto">
+							<div class="row col-12 col-sm-5 align-items-center mx-0">
+								<select class="bit__select bit__select_mini form-control col-8" id="detachedStructure1" name="detailAreaInfoDto.detachedStructure1">
+									<option value="00">指定なし</option>
+									<option value="01">木造</option>
+									<option value="02">土蔵造</option>
+									<option value="03">石造</option>
+									<option value="04">れんが造</option>
+									<option value="05">コンクリートブロック造</option>
+									<option value="06">鉄骨造</option>
+									<option value="07">鉄筋コンクリート造</option>
+									<option value="08">鉄骨鉄筋コンクリート造</option>
+									<option value="09">その他</option>
+								</select>
+								<p class="col-4 mb-0">または</p>
+							</div>
+							<div class="row col-12 col-sm-5 align-items-center mt-2 mt-sm-0 mx-0">
+								<select class="bit__select bit__select_mini form-control mt-sm-0 col-8" id="detachedStructure2" name="detailAreaInfoDto.detachedStructure2">
+									<option value="00">指定なし</option>
+									<option value="01">木造</option>
+									<option value="02">土蔵造</option>
+									<option value="03">石造</option>
+									<option value="04">れんが造</option>
+									<option value="05">コンクリートブロック造</option>
+									<option value="06">鉄骨造</option>
+									<option value="07">鉄筋コンクリート造</option>
+									<option value="08">鉄骨鉄筋コンクリート造</option>
+									<option value="09">その他</option>
+								</select>
+							</div>
+						</div>
+						<div class="row mx-0">
+							<div class="col-12 px-0">
+								<p class="bit__text_small mb-0">2つまで指定可能です。</p>
+							</div>
+						</div>
+					</td>
+				</tr>
+				<tr class="d-flex d-sm-table-row flex-column">
+					<th class="d-flex d-sm-table-cell bit__flexbox_flexbasis_auto" scope="row">間取り</th>
+					<td class="d-flex flex-column flex-sm-row bit__flexbox_flexbasis_auto">
+						<div class="row col-12 align-items-center mx-0 px-0 bit__flexbox_flexbasis_auto">
+							<select class="bit__select bit__select_mini form-control col-8 col-sm-3 mt-2 mt-sm-0" id="detachedRoomArrangementCls" name="detailAreaInfoDto.detachedRoomArrangement">
+								<option value="99">指定なし</option>
+								<option value="00">ワンルーム</option>
+								<option value="01">１K</option>
+								<option value="02">１DK</option>
+								<option value="03">１LDK</option>
+								<option value="04">２K</option>
+								<option value="05">２DK</option>
+								<option value="06">２LDK</option>
+								<option value="07">３K</option>
+								<option value="08">３DK</option>
+								<option value="09">３LDK</option>
+								<option value="10">４K</option>
+								<option value="11">４DK</option>
+								<option value="12">４LDK</option>
+								<option value="13">４LDKより大きい間取り</option>
+								<option value="14">その他</option>
+							</select>
+						</div>
+					</td>
+				</tr>
+				<tr class="d-flex d-sm-table-row flex-column">
+					<th class="d-flex d-sm-table-cell bit__flexbox_flexbasis_auto" scope="row">種類（現況）</th>
+					<td class="d-flex flex-column flex-sm-row bit__flexbox_flexbasis_auto">
+						<div class="row col-12 align-items-center mx-0 px-0 bit__flexbox_flexbasis_auto">
+							<select class="bit__select form-control col-8 col-sm-3 mt-2 mt-sm-0" id="detachedPresentType" name="detailAreaInfoDto.detacheLandKind">
+								<option value="00">指定なし</option>
+								<option value="01">居宅</option>
+								<option value="02">店舗</option>
+								<option value="05">事務所</option>
+								<option value="06">共同住宅</option>
+								<option value="09">倉庫</option>
+								<option value="99">その他</option>
+							</select>
+						</div>
+					</td>
+				</tr>
+				<tr class="d-flex d-sm-table-row flex-column">
+					<th class="d-flex d-sm-table-cell bit__flexbox_flexbasis_auto" scope="row">階建て</th>
+					<td class="d-flex flex-column">
+						<div class="row col-12 align-items-center px-0 bit__flexbox_flexbasis_auto">
+							<div class="row col-12 col-sm-5 align-items-center mx-0">
+								<input class="bit__textbox form-control col-8" type="text" maxlength="2" id="detachedStoryLower" name="detailAreaInfoDto.detachedStoreyMin" oninput="value=value.replace(/[^0-9]+/i,'');" pattern="[0-9]*" value="">
+								<span class="d-block col-4 mb-0">階以上</span>
+							</div>
+							<div class="row col-12 col-sm-5 align-items-center mt-2 mt-sm-0 mx-0">
+								<input class="bit__textbox form-control col-8" type="text" maxlength="2" id="detachedStoryUpper" name="detailAreaInfoDto.detachedStoreyMax" oninput="value=value.replace(/[^0-9]+/i,'');" pattern="[0-9]*" value="">
+								<span class="d-block col-4 mb-0">階以下</span>
+							</div>
+						</div>
+						<div class="row mx-0">
+							<div class="col-12 px-0">
+								<p class="bit__text_small mb-0">半角数字のみ入力可能です。</p>
+							</div>
+						</div>
+					</td>
+				</tr>
+				<tr class="d-flex d-sm-table-row flex-column">
+					<th class="d-flex d-sm-table-cell bit__flexbox_flexbasis_auto" scope="row">占有者</th>
+					<td class="d-flex flex-column flex-sm-row justify-content-sm-between bit__flexbox_flexbasis_auto">
+						<div class="row col-12 mx-0 px-0 bit__flexbox_flexbasis_auto">
+							<div class="form-check form-check-inline col-12 col-sm-3 mt-2 mt-sm-0 mx-0">
+								<input class="form-check-input mr-3 mr-sm-1" type="checkbox" id="detachedPossessorExist" value="1" name="detailAreaInfoDto.detachedPossessorExist"><input type="hidden" name="_detailAreaInfoDto.detachedPossessorExist" value="on"/>
+								<label class="form-check-label" for="detachedPossessorExist">占有者なし</label>
+							</div>
+							<div class="form-check form-check-inline col-12 col-sm-3 mt-2 mt-sm-0 mx-0">
+								<input class="form-check-input mr-3 mr-sm-1" type="checkbox" id="detachedPossessorNone" value="1" name="detailAreaInfoDto.detachedPossessorNone"><input type="hidden" name="_detailAreaInfoDto.detachedPossessorNone" value="on"/>
+								<label class="form-check-label" for="detachedPossessorNone">占有者あり</label>
+							</div>
+							<div class="form-check form-check-inline col-12 col-sm-4 mt-2 mt-sm-0 mx-0">
+								<input class="form-check-input mr-3 mr-sm-1" type="checkbox" id="detachedDebtorFlg" value="1" name="detailAreaInfoDto.detachedDebtorFlg"><input type="hidden" name="_detailAreaInfoDto.detachedDebtorFlg" value="on"/>
+								<label class="form-check-label" for="detachedDebtorFlg">占有者が債務者・所有者</label>
+							</div>
+						</div>
+					</td>
+				</tr>
+				<tr class="d-flex d-sm-table-row flex-column">
+					<th class="d-flex d-sm-table-cell bit__flexbox_flexbasis_auto" scope="row">敷地利用権</th>
+					<td class="d-flex flex-column flex-sm-row justify-content-sm-between bit__flexbox_flexbasis_auto">
+						<div class="row col-12 mx-0 px-0 bit__flexbox_flexbasis_auto">
+							<div class="form-check form-check-inline col-12 col-sm-2 mt-2 mt-sm-0 mx-0">
+								<input class="form-check-input mr-3 mr-sm-1" type="checkbox" id="detachedOwnershipFlg" value="1" name="detailAreaInfoDto.detachedOwnershipFlg"><input type="hidden" name="_detailAreaInfoDto.detachedOwnershipFlg" value="on"/>
+								<label class="form-check-label" for="detachedOwnershipFlg">所有権</label>
+							</div>
+							<div class="form-check form-check-inline col-12 col-sm-2 mt-2 mt-sm-0 mx-0">
+								<input class="form-check-input mr-3 mr-sm-1" type="checkbox" id="detachedSuperficiesFlg" value="1" name="detailAreaInfoDto.detachedSuperficiesFlg"><input type="hidden" name="_detailAreaInfoDto.detachedSuperficiesFlg" value="on"/>
+								<label class="form-check-label" for="detachedSuperficiesFlg">地上権</label>
+							</div>
+							<div class="form-check form-check-inline col-12 col-sm-2 mt-2 mt-sm-0 mx-0">
+								<input class="form-check-input mr-3 mr-sm-1" type="checkbox" id="detachedLeaseFlg" value="1" name="detailAreaInfoDto.detachedLeaseFlg"><input type="hidden" name="_detailAreaInfoDto.detachedLeaseFlg" value="on"/>
+								<label class="form-check-label" for="detachedLeaseFlg">借地権</label>
+							</div>
+							<div class="form-check form-check-inline col-12 col-sm-2 mt-2 mt-sm-0 mx-0">
+								<input class="form-check-input mr-3 mr-sm-1" type="checkbox" id="detachedOthersSiteUseFlg" value="1" name="detailAreaInfoDto.detachedOthersSiteUseFlg"><input type="hidden" name="_detailAreaInfoDto.detachedOthersSiteUseFlg" value="on"/>
+								<label class="form-check-label" for="detachedOthersSiteUseFlg">その他</label>
+							</div>
+						</div>
+					</td>
+				</tr>
+			</tbody>
+		</table>
+	</div>
+	<div id="mansionBlock" style="display:(${searchInfoDto.saleClsList != null?(searchInfoDto.saleClsList.contains(&#39;3&#39;)?&#39;block&#39;:&#39;none&#39;}):&#39;none&#39;)">
+		<table class="table table-borderless bit__table mb-0">
+			<caption>マンション</caption>
+			<tbody>
+				<tr class="d-flex d-sm-table-row flex-column">
+					<th class="d-flex d-sm-table-cell bit__flexbox_flexbasis_auto" scope="row">専有面積</th>
+					<td class="d-flex flex-column">
+						<div class="row col-12 align-items-center px-0 bit__flexbox_flexbasis_auto">
+							<div class="row col-12 col-sm-5 align-items-center mx-0">
+								<input class="bit__textbox form-control col-8" type="text" maxlength="11" id="exclusiveAreaLower" name="detailAreaInfoDto.mansionExclusiveAreaMin" oninput="value=value.replace(/[^0-9.]+/i,'');" inputmode="decimal" value="">
+								<span class="d-block col-4 mb-0">㎡以上</span>
+							</div>
+							<div class="row col-12 col-sm-5 align-items-center mt-2 mt-sm-0 mx-0">
+								<input class="bit__textbox form-control col-8" type="text" maxlength="11" id="exclusiveAreaUpper" name="detailAreaInfoDto.mansionExclusiveAreaMax" oninput="value=value.replace(/[^0-9.]+/i,'');" inputmode="decimal" value="">
+								<span class="d-block col-4 mb-0">㎡以下</span>
+							</div>
+						</div>
+						<div class="row mx-0">
+							<div class="col-12 px-0">
+								<p class="bit__text_small mb-0">半角数字で小数点第2位まで入力可能です。 小数点は半角の「.」を入力します。</p>
+							</div>
+						</div>
+					</td>
+				</tr>
+				<tr class="d-flex d-sm-table-row flex-column">
+					<th class="d-flex d-sm-table-cell bit__flexbox_flexbasis_auto" scope="row">構造</th>
+					<td class="d-flex flex-column">
+						<div class="row col-12 align-items-center px-0 bit__flexbox_flexbasis_auto">
+							<div class="row col-12 col-sm-5 align-items-center mx-0">
+								<select class="bit__select bit__select_mini form-control col-8" id="mansionStructure1" name="detailAreaInfoDto.mansionStructure1">
+									<option value="00">指定なし</option>
+									<option value="01">木造</option>
+									<option value="02">土蔵造</option>
+									<option value="03">石造</option>
+									<option value="04">れんが造</option>
+									<option value="05">コンクリートブロック造</option>
+									<option value="06">鉄骨造</option>
+									<option value="07">鉄筋コンクリート造</option>
+									<option value="08">鉄骨鉄筋コンクリート造</option>
+									<option value="09">その他</option>
+								</select>
+								<p class="col-4 mb-0">または</p>
+							</div>
+							<div class="row col-12 col-sm-5 align-items-center mt-2 mt-sm-0 mx-0">
+								<select class="bit__select bit__select_mini form-control mt-sm-0 col-8" id="mansionStructure2" name="detailAreaInfoDto.mansionStructure2">
+									<option value="00">指定なし</option>
+									<option value="01">木造</option>
+									<option value="02">土蔵造</option>
+									<option value="03">石造</option>
+									<option value="04">れんが造</option>
+									<option value="05">コンクリートブロック造</option>
+									<option value="06">鉄骨造</option>
+									<option value="07">鉄筋コンクリート造</option>
+									<option value="08">鉄骨鉄筋コンクリート造</option>
+									<option value="09">その他</option>
+								</select>
+							</div>
+						</div>
+						<div class="row mx-0">
+							<div class="col-12 px-0">
+								<p class="bit__text_small mb-0">2つまで指定可能です。</p>
+							</div>
+						</div>
+					</td>
+				</tr>
+				<tr class="d-flex d-sm-table-row flex-column">
+					<th class="d-flex d-sm-table-cell bit__flexbox_flexbasis_auto" scope="row">間取り</th>
+					<td class="d-flex flex-column flex-sm-row bit__flexbox_flexbasis_auto">
+						<div class="row col-12 align-items-center mx-0 px-0 bit__flexbox_flexbasis_auto">
+							<select class="bit__select bit__select_mini form-control col-8 col-sm-3 mt-2 mt-sm-0" id="mansionRoomArrangementCls" name="detailAreaInfoDto.mansionRoomArrangement">
+								<option value="99">指定なし</option>
+								<option value="00">ワンルーム</option>
+								<option value="01">１K</option>
+								<option value="02">１DK</option>
+								<option value="03">１LDK</option>
+								<option value="04">２K</option>
+								<option value="05">２DK</option>
+								<option value="06">２LDK</option>
+								<option value="07">３K</option>
+								<option value="08">３DK</option>
+								<option value="09">３LDK</option>
+								<option value="10">４K</option>
+								<option value="11">４DK</option>
+								<option value="12">４LDK</option>
+								<option value="13">４LDKより大きい間取り</option>
+								<option value="14">その他</option>
+							</select>
+						</div>
+					</td>
+				</tr>
+				<tr class="d-flex d-sm-table-row flex-column">
+					<th class="d-flex d-sm-table-cell bit__flexbox_flexbasis_auto" scope="row">種類（現況）</th>
+					<td class="d-flex flex-column flex-sm-row bit__flexbox_flexbasis_auto">
+						<div class="row col-12 align-items-center mx-0 px-0 bit__flexbox_flexbasis_auto">
+							<select class="bit__select form-control col-8 col-sm-3 mt-2 mt-sm-0" id="mansionPresentType" name="detailAreaInfoDto.mansionLandKind">
+								<option value="00">指定なし</option>
+								<option value="01">居宅</option>
+								<option value="02">店舗</option>
+								<option value="05">事務所</option>
+								<option value="06">共同住宅</option>
+								<option value="09">倉庫</option>
+								<option value="99">その他</option>
+							</select>
+						</div>
+					</td>
+				</tr>
+				<tr class="d-flex d-sm-table-row flex-column">
+					<th class="d-flex d-sm-table-cell bit__flexbox_flexbasis_auto" scope="row">階建て</th>
+					<td class="d-flex flex-column">
+						<div class="row col-12 align-items-center px-0 bit__flexbox_flexbasis_auto">
+							<div class="row col-12 col-sm-5 align-items-center mx-0">
+								<input class="bit__textbox form-control col-8" type="text" maxlength="2" id="mansionStoryLower" name="detailAreaInfoDto.mansionStoreyMin" oninput="value=value.replace(/[^0-9]+/i,'');" pattern="[0-9]*" value="">
+								<span class="d-block col-4 mb-0">階以上</span>
+							</div>
+							<div class="row col-12 col-sm-5 align-items-center mt-2 mt-sm-0 mx-0">
+								<input class="bit__textbox form-control col-8" type="text" maxlength="2" id="mansionStoryUpper" name="detailAreaInfoDto.mansionStoreyMax" oninput="value=value.replace(/[^0-9]+/i,'');" pattern="[0-9]*" value="">
+								<span class="d-block col-4 mb-0">階以下</span>
+							</div>
+						</div>
+						<div class="row mx-0">
+							<div class="col-12 px-0">
+								<p class="bit__text_small mb-0">半角数字のみ入力可能です。</p>
+							</div>
+						</div>
+					</td>
+				</tr>
+				<tr class="d-flex d-sm-table-row flex-column">
+					<th class="d-flex d-sm-table-cell bit__flexbox_flexbasis_auto" scope="row">階</th>
+					<td class="d-flex flex-column">
+						<div class="row col-12 align-items-center mx-0 px-0 bit__flexbox_flexbasis_auto">
+							<select class="bit__select form-control col-8 col-sm-2 mt-2 mt-sm-0 mr-sm-2 mb-2 mb-sm-0" id="groundType" name="detailAreaInfoDto.mansionFloor">
+								<option value="0">地上</option>
+								<option value="1">地下</option>
+							</select>
+							<div class="row col-12 col-sm-4 align-items-center mx-0 px-0">
+								<input class="bit__textbox form-control col-8" type="text" maxlength="2" id="floorLower" name="detailAreaInfoDto.mansionFloorMin" oninput="value=value.replace(/[^0-9]+/i,'');" pattern="[0-9]*" value="">
+								<span class="d-block col-4 mb-0">階以上</span>
+							</div>
+							<div class="row col-12 col-sm-4 align-items-center mt-2 mt-sm-0 mx-0 px-0">
+								<input class="bit__textbox form-control col-8" type="text" maxlength="2" id="floorUpper" name="detailAreaInfoDto.mansionFloorMax" oninput="value=value.replace(/[^0-9]+/i,'');" pattern="[0-9]*" value="">
+								<span class="d-block col-4 mb-0">階以下</span>
+							</div>
+						</div>
+						<div class="row mx-0">
+							<div class="col-12 px-0">
+								<p class="bit__text_small mb-0">上限階は地上となります。</p>
+							</div>
+						</div>
+					</td>
+				</tr>
+				<tr class="d-flex d-sm-table-row flex-column">
+					<th class="d-flex d-sm-table-cell bit__flexbox_flexbasis_auto" scope="row">占有者</th>
+					<td class="d-flex flex-column flex-sm-row justify-content-sm-between bit__flexbox_flexbasis_auto">
+						<div class="row col-12 mx-0 px-0 bit__flexbox_flexbasis_auto">
+							<div class="form-check form-check-inline col-12 col-sm-3 mt-2 mt-sm-0 mx-0">
+								<input class="form-check-input mr-3 mr-sm-1" type="checkbox" id="mansionPossessorExist" value="1" name="detailAreaInfoDto.mansionPossessorExist"><input type="hidden" name="_detailAreaInfoDto.mansionPossessorExist" value="on"/>
+								<label class="form-check-label" for="mansionPossessorExist">占有者なし</label>
+							</div>
+							<div class="form-check form-check-inline col-12 col-sm-3 mt-2 mt-sm-0 mx-0">
+								<input class="form-check-input mr-3 mr-sm-1" type="checkbox" id="mansionPossessorNone" value="1" name="detailAreaInfoDto.mansionPossessorNone"><input type="hidden" name="_detailAreaInfoDto.mansionPossessorNone" value="on"/>
+								<label class="form-check-label" for="mansionPossessorNone">占有者あり</label>
+							</div>
+							<div class="form-check form-check-inline col-12 col-sm-4 mt-2 mt-sm-0 mx-0">
+								<input class="form-check-input mr-3 mr-sm-1" type="checkbox" id="mansionDebtorFlg" value="1" name="detailAreaInfoDto.mansionDebtorFlg"><input type="hidden" name="_detailAreaInfoDto.mansionDebtorFlg" value="on"/>
+								<label class="form-check-label" for="mansionDebtorFlg">占有者が債務者・所有者</label>
+							</div>
+						</div>
+					</td>
+				</tr>
+				<tr class="d-flex d-sm-table-row flex-column">
+					<th class="d-flex d-sm-table-cell bit__flexbox_flexbasis_auto" scope="row">管理費等</th>
+					<td class="d-flex flex-column">
+						<div class="row col-12 align-items-center px-0 bit__flexbox_flexbasis_auto">
+							<div class="row col-12 col-sm-5 align-items-center mx-0">
+								<input class="bit__textbox form-control col-8" type="text" maxlength="12" id="adminExpensesLower" name="detailAreaInfoDto.mansionAdminExpensesMin" oninput="value=value.replace(/[^0-9]+/i,'');" pattern="[0-9]*" value="">
+								<span class="d-block col-4 mb-0">円以上</span>
+							</div>
+							<div class="row col-12 col-sm-5 align-items-center mt-2 mt-sm-0 mx-0">
+								<input class="bit__textbox form-control col-8" type="text" maxlength="12" id="adminExpensesUpper" name="detailAreaInfoDto.mansionAdminExpensesMax" oninput="value=value.replace(/[^0-9]+/i,'');" pattern="[0-9]*" value="">
+								<span class="d-block col-4 mb-0">円以下</span>
+							</div>
+						</div>
+						<div class="row mx-0">
+							<div class="col-12 px-0">
+								<p class="bit__text_small mb-0">半角数字のみ入力可能です。</p>
+							</div>
+						</div>
+					</td>
+				</tr>
+				<tr class="d-flex d-sm-table-row flex-column">
+					<th class="d-flex d-sm-table-cell bit__flexbox_flexbasis_auto" scope="row">敷地利用権</th>
+					<td class="d-flex flex-column flex-sm-row justify-content-sm-between bit__flexbox_flexbasis_auto">
+						<div class="row col-12 mx-0 px-0 bit__flexbox_flexbasis_auto">
+							<div class="form-check form-check-inline col-12 col-sm-2 mt-2 mt-sm-0 mx-0">
+								<input class="form-check-input mr-3 mr-sm-1" type="checkbox" id="mansionOwnershipFlg" value="1" name="detailAreaInfoDto.mansionOwnershipFlg"><input type="hidden" name="_detailAreaInfoDto.mansionOwnershipFlg" value="on"/>
+								<label class="form-check-label" for="mansionOwnershipFlg">所有権</label>
+							</div>
+							<div class="form-check form-check-inline col-12 col-sm-2 mt-2 mt-sm-0 mx-0">
+								<input class="form-check-input mr-3 mr-sm-1" type="checkbox" id="mansionSuperficiesFlg" value="1" name="detailAreaInfoDto.mansionSuperficiesFlg"><input type="hidden" name="_detailAreaInfoDto.mansionSuperficiesFlg" value="on"/>
+								<label class="form-check-label" for="mansionSuperficiesFlg">地上権</label>
+							</div>
+							<div class="form-check form-check-inline col-12 col-sm-2 mt-2 mt-sm-0 mx-0">
+								<input class="form-check-input mr-3 mr-sm-1" type="checkbox" id="mansionLeaseFlg" value="1" name="detailAreaInfoDto.mansionLeaseFlg"><input type="hidden" name="_detailAreaInfoDto.mansionLeaseFlg" value="on"/>
+								<label class="form-check-label" for="mansionLeaseFlg">借地権</label>
+							</div>
+							<div class="form-check form-check-inline col-12 col-sm-2 mt-2 mt-sm-0 mx-0">
+								<input class="form-check-input mr-3 mr-sm-1" type="checkbox" id="mansionOthersSiteUseFlg" value="1" name="detailAreaInfoDto.mansionOthersSiteUseFlg"><input type="hidden" name="_detailAreaInfoDto.mansionOthersSiteUseFlg" value="on"/>
+								<label class="form-check-label" for="mansionOthersSiteUseFlg">その他</label>
+							</div>
+						</div>
+					</td>
+				</tr>
+			</tbody>
+		</table>
+	</div>
+	<div id="saleClsOtherBlock" style="display:(${searchInfoDto.saleClsList != null?(searchInfoDto.saleClsList.contains(&#39;4&#39;)?&#39;block&#39;:&#39;none&#39;}):&#39;none&#39;)">
+		<table class="table table-borderless bit__table mb-0">
+			<caption>その他</caption>
+			<tbody>
+				<tr class="d-flex d-sm-table-row flex-column">
+					<th class="d-flex d-sm-table-cell bit__flexbox_flexbasis_auto" scope="row">地目</th>
+					<td class="d-flex flex-column flex-sm-row justify-content-sm-between bit__flexbox_flexbasis_auto">
+						<div class="row col-12 align-items-center mx-0 px-0 bit__flexbox_flexbasis_auto">
+							<select class="bit__select form-control col-8 col-sm-3" id="OtherLandCategory" name="detailAreaInfoDto.otherLandCls">
+								<option value="00">指定なし</option>
+								<option value="10">宅地</option>
+								<option value="40">田</option>
+								<option value="50">畑</option>
+								<option value="60">牧場</option>
+								<option value="71">山林</option>
+								<option value="73">原野</option>
+								<option value="90">雑種地</option>
+								<option value="99">その他</option>
+							</select>
+						</div>
+					</td>
+				</tr>
+				<tr class="d-flex d-sm-table-row flex-column">
+					<th class="d-flex d-sm-table-cell bit__flexbox_flexbasis_auto" scope="row">土地の利用状況</th>
+					<td class="d-flex flex-column flex-sm-row">
+						<div class="row col-12 mx-0 px-0 bit__flexbox_flexbasis_auto">
+							<div class="form-check form-check-inline col-12 col-sm-2 mt-2 mt-sm-0 mx-0">
+								<input class="form-check-input mr-3 mr-sm-1" type="checkbox" name="detailAreaInfoDto.otherLandConditionClsList" id="otherLandConditionClsList" value="1"><input type="hidden" name="_detailAreaInfoDto.otherLandConditionClsList" value="on"/>
+								<label class="form-check-label" for="otherLandConditionClsList">更地</label>
+							</div>
+						</div>
+					</td>
+				</tr>
+				<tr class="d-flex d-sm-table-row flex-column">
+					<th class="d-flex d-sm-table-cell bit__flexbox_flexbasis_auto" scope="row">土地面積</th>
+					<td class="d-flex flex-column">
+						<div class="row col-12 align-items-center px-0 bit__flexbox_flexbasis_auto">
+							<div class="row col-12 col-sm-5 align-items-center mx-0">
+								<input class="bit__textbox form-control col-8" type="text" maxlength="13" id="otherLandAreaLower" name="detailAreaInfoDto.otherLandAreaMin" oninput="value=value.replace(/[^0-9.]+/i,'');" inputmode="decimal" value="">
+								<p class="col-4 mb-0">㎡以上</p>
+							</div>
+							<div class="row col-12 col-sm-5 align-items-center mt-2 mt-sm-0 mx-0">
+								<input class="bit__textbox form-control col-8" type="text" maxlength="13" id="otherLandAreaUpper" name="detailAreaInfoDto.otherLandAreaMax" oninput="value=value.replace(/[^0-9.]+/i,'');" inputmode="decimal" value="">
+								<p class="col-4 mb-0">㎡以下</p>
+							</div>
+						</div>
+						<div class="row mx-0">
+							<div class="col-12 px-0">
+								<p class="bit__text_small mb-0">半角数字で小数点第2位まで入力可能です。 小数点は半角の「.」を入力します。</p>
+							</div>
+						</div>
+					</td>
+				</tr>
+			</tbody>
+		</table>
+	</div>
+</div>	
+													<div class="d-sm-flex justify-content-between col-12 mt-4 px-0">
+														<div class="col-12 col-sm-6 px-0">
+															<button id="btnClear2" type="button" class="bit__btn_secondary btn btn-secondary col-12 col-sm-4">条件をクリア</button>
+														</div>
+														<div class="d-sm-flex justify-content-end col-12 col-sm-6 mt-2 mt-sm-0 px-0">
+															<button id="btnSaleCls" type="button" class="bit__btn_secondary btn btn-secondary col-12 col-sm-4 bit__collapseBtn_syosaiClose collapsed" data-toggle="collapse" data-target="#bit__collapseBtn_target" aria-expanded="false" aria-controls="bit__collapseBtn_target" >種別を選びなおす</button>
+															<button type="button" class="bit__btn_primary btn btn-primary col-12 col-sm-4 mt-2 mt-sm-0 ml-md-2" onclick="tranResultSearch(&#39;2&#39;);">検索</button>
+														</div>
+													</div>
+												</div>
+											</div>
+										</div>
+									</div>
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+			<div class="bit__pageTop">
+				<a href="#top"><i class="bit__pageTop_arrow"></i></a>
+			</div>
+		</div>
+	</main>
+	<input type="hidden" id="tabId" name="tabId" value="property"/>
+	<input type="hidden" id="stationBackPage" name="stationBackPage" value=""/>
+	<input type="hidden" id="prefecturesId" name="prefecturesId" value=""/>
+	<input type="hidden" id="blockCls" name="blockCls" value="07"/>
+	<input type="hidden" id="mapShowFlag" name="mapShowFlag" value="0"/>
+	<input type="hidden" id="searchType" name="searchType" value="2"/>
+	<input type="hidden" id="municipalityId" name="municipalityId" value=""/>
+	<input type="hidden" id="municipalityNm" name="municipalityNm" value=""/>
+	<input type="hidden" id="mapSelectedAreaName" name="mapSelectedAreaName" value=""/>
+	<input type="hidden" id="detailConditionOpenFlg" name="detailConditionOpenFlg" value="0"/>
+	<input type="hidden" id="saleClsSelected" name="saleClsList" value="1,2,3,4"/>
+	<input type="hidden" id="municipalitychecked" name="areaIdList" value=""/>
+	<input type="hidden" id="blockName" name="blockName" value="中国"/>
+	<input type="hidden" id="hasCondition" name="hasCondition" value="0"/>
+	<input type="hidden" id="landDetalConditionOpenFlag" name="landDetalConditionOpenFlag" value=""/>
+	<input type="hidden" id="detachedDetalConditionOpenFlag" name="detachedDetalConditionOpenFlag" value=""/>
+	<input type="hidden" id="mansionDetalConditionOpenFlag" name="mansionDetalConditionOpenFlag" value=""/>
+	<input type="hidden" id="otherLandDetalConditionOpenFlag" name="otherLandDetalConditionOpenFlag" value=""/>
+	</form>
+	
+	<!-- footer -->
+    <footer class="container-fluid px-0">
+	<div>
+		<div class="bit__footer_inner">
+	<div id="bit__footer_blankSpace" class="row">
+
+		<!-- footer_left -->
+		<div
+			class="col-0 col-sm-4 pl-0 pr-0 d-none d-sm-flex align-items-center">
+			<a href="/app/top/pt001/h01"> <img class="col-12 pl-0 pr-4"
+				src="../../common/images/logo.png" alt="BIT　不動産競売物件情報サイト">
+			</a>
+		</div>
+		<!-- footer_right -->
+		<div
+			class="bit__footer_right col-12 col-sm-8 pl-0 pr-0 d-flex flex-column">
+			<!-- inner_top -->
+			<div class="bit__footer_top mb-sm-3">
+				<!-- footer_linkbox -->
+				<ul class="d-flex flex-column flex-sm-row m-0 mt-sm-3 mb-sm-3 p-0">
+					<li class="ml-sm-3"><a href="/contact.html" class="d-block d-sm-inline"><i
+							class="bit__icon_footerArrow mr-2 mr-sm-0"></i>お問い合わせ</a></li>
+					<li class="ml-sm-5"><a href="/backnumber/index.html" class="d-block d-sm-inline"><i
+							class="bit__icon_footerArrow mr-2 mr-sm-0"></i>トピックス一覧</a></li>
+					<li class="ml-sm-5"><a href="/policy/site_policy.html" class="d-block d-sm-inline"><i
+							class="bit__icon_footerArrow mr-2 mr-sm-0"></i>サイトのご利用条件</a></li>
+				</ul>
+			</div>
+
+			<!-- inner_bottom -->
+			<div class="bit__footer_bottom d-flex flex-column flex-sm-row">
+				<!-- footer_linkbox1 -->
+				<div class="bit__footer_bottomlink d-flex flex-column ml-sm-2">
+					<span
+						class="bit__footer_collapseHeader mb-sm-1 d-block d-sm-inline collapsed"
+						data-toggle="collapse" data-target="#collapse10"
+						aria-expanded="false" aria-controls="collapse10" role="button">競売物件</span>
+					<ul class="ml-2 ml-sm-0 pl-0 collapse d-sm-block" id="collapse10">
+						<li><a href="#" onclick="tranArea(&#39;property&#39;,&#39;&#39;);"><i
+								class="bit__icon_footerArrow_01 mr-2"></i>競売物件情報の検索</a></li>
+					</ul>
+					<span
+						class="bit__footer_collapseHeader mb-sm-1 d-block d-sm-inline collapsed"
+						data-toggle="collapse" data-target="#collapse20"
+						aria-expanded="false" aria-controls="collapse20" role="button">売却物件</span>
+					<ul class="ml-2 ml-sm-0 pl-0 collapse d-sm-block" id="collapse20">
+						<li><a href="#" onclick="tranArea(&#39;result&#39;,&#39;&#39;);"><i
+								class="bit__icon_footerArrow_01 mr-2"></i>売却結果の照会</a></li>
+					</ul>
+					<span
+						class="bit__footer_collapseHeader mb-sm-1 d-block d-sm-inline collapsed"
+						data-toggle="collapse" data-target="#collapse30"
+						aria-expanded="false" aria-controls="collapse30" role="button">過去データ</span>
+					<ul class="ml-2 ml-sm-0 pl-0 collapse d-sm-block" id="collapse30">
+						<li><a href="#" onclick="tranArea(&#39;past&#39;,&#39;&#39;);"><i
+								class="bit__icon_footerArrow_01 mr-2"></i>過去データの照会</a></li>
+					</ul>
+				</div>
+				<!-- footer_linkbox2 -->
+				<div class="bit__footer_bottomlink d-flex flex-column ml-sm-5">
+					<span
+						class="bit__footer_collapseHeader mb-sm-1 d-block d-sm-inline collapsed"
+						data-toggle="collapse" data-target="#collapse40"
+						aria-expanded="false" aria-controls="collapse40" role="button">手続案内</span>
+					<ul class="ml-2 ml-sm-0 pl-0 collapse d-sm-block" id="collapse40">
+						<li class="mb-2 mb-sm-0"><a href="/guidance/guidance01.html"><i
+								class="bit__icon_footerArrow_01 mr-2"></i>不動産執行手続の流れ</a></li>
+						<li class="mb-2 mb-sm-0"><a href="/guidance/guidance02.html"><i
+								class="bit__icon_footerArrow_01 mr-2"></i>売却手続の流れ</a></li>
+						<li class="mb-2 mb-sm-0"><a href="/guidance/guidance03/index.html"><i
+								class="bit__icon_footerArrow_01 mr-2"></i>入札等の手続について</a></li>
+						<li class="mb-2 mb-sm-0"><a href="/guidance/guidance04.html"><i
+								class="bit__icon_footerArrow_01 mr-2"></i>引渡命令手続の流れ</a></li>
+					</ul>
+					<span
+						class="bit__footer_collapseHeader mb-sm-1 d-block d-sm-inline collapsed"
+						data-toggle="collapse" data-target="#collapse50"
+						aria-expanded="false" aria-controls="collapse50" role="button">スケジュール</span>
+					<ul class="ml-2 ml-sm-0 pl-0 collapse d-sm-block" id="collapse50">
+						<li class="mb-2 mb-sm-0"><a href="/schedule/index.html"><i
+								class="bit__icon_footerArrow_01 mr-2"></i>売却スケジュールの照会</a></li>
+					</ul>
+					<span
+						class="bit__footer_collapseHeader mb-sm-1 d-block d-sm-inline collapsed"
+						data-toggle="collapse" data-target="#collapse60"
+						aria-expanded="false" aria-controls="collapse60" role="button">用語集</span>
+					<ul class="ml-2 ml-sm-0 pl-0 collapse d-sm-block" id="collapse60">
+						<li class="mb-2 mb-sm-0"><a href="/words/index.html"><i
+								class="bit__icon_footerArrow_01 mr-2"></i>用語集</a></li>
+					</ul>
+					<span
+						class="bit__footer_collapseHeader mb-sm-1 d-block d-sm-inline collapsed"
+						data-toggle="collapse" data-target="#collapse70"
+						aria-expanded="false" aria-controls="collapse70" role="button">お知らせ</span>
+					<ul class="ml-2 ml-sm-0 pl-0 collapse d-sm-block" id="collapse70">
+						<li class="mb-2 mb-sm-0"><a href="/info/index.html"><i
+								class="bit__icon_footerArrow_01 mr-2"></i>地方裁判所からのお知らせ</a></li>
+					</ul>
+				</div>
+				<!-- footer_linkbox3 -->
+				<div class="bit__footer_bottomlink d-flex flex-column ml-sm-5">
+					<span
+						class="bit__footer_collapseHeader mb-sm-1 d-block d-sm-inline collapsed"
+						data-toggle="collapse" data-target="#collapse80"
+						aria-expanded="false" aria-controls="collapse80" role="button">使い方</span>
+					<ul class="ml-2 ml-sm-0 pl-0 collapse d-sm-block" id="collapse80">
+						<li class="mb-2 mb-sm-0"><a href="/help/help01/index.html"><i
+								class="bit__icon_footerArrow_01 mr-2"></i>競売物件情報の検索</a></li>
+						<li class="mb-2 mb-sm-0"><a href="/help/help02/index.html"><i
+								class="bit__icon_footerArrow_01 mr-2"></i>競売物件情報の検索（ブロックから探す）</a></li>
+						<li class="mb-2 mb-sm-0"><a href="/help/help03/index.html"><i
+								class="bit__icon_footerArrow_01 mr-2"></i>競売物件情報の検索（取下げ等の検索）</a></li>
+						<li class="mb-2 mb-sm-0"><a href="/help/help04/index.html"><i
+								class="bit__icon_footerArrow_01 mr-2"></i>売却結果の照会</a></li>
+						<li class="mb-2 mb-sm-0"><a href="/help/help05/index.html"><i
+								class="bit__icon_footerArrow_01 mr-2"></i>過去データの照会</a></li>
+						<li class="mb-2 mb-sm-0"><a href="/help/help07/index.html"><i
+								class="bit__icon_footerArrow_01 mr-2"></i>売却スケジュールの照会</a></li>
+						<li class="mb-2 mb-sm-0"><a href="/help/help08/index.html"><i
+								class="bit__icon_footerArrow_01 mr-2"></i>用語集</a></li>
+						<li class="mb-2 mb-sm-0"><a href="/help/help09/index.html"><i
+								class="bit__icon_footerArrow_01 mr-2"></i>手続案内</a></li>
+						<li class="mb-2 mb-sm-0"><a href="/help/help10/index.html"><i
+								class="bit__icon_footerArrow_01 mr-2"></i>地方裁判所からのお知らせ</a></li>
+					</ul>
+				</div>
+			</div>
+		</div>
+	</div>
+</div>
+	</div>
+	
+	<script src="../../common/lib/jquery/jquery-3.5.1.min.js"></script>
+	<script
+		src="../../common/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+	<script src="../../common/js/main.js"></script>
+	<script src="../../common/js/common.js"></script>
+
+</footer>
+    
+	<script src="../../property/common.js"></script>
+	<script>
+	/**
+	 * <p>
+	 * 全検索ボタン処理。
+	 * </p>
+	 * 
+	 */
+	function　tranAllAreaSearch()　{
+		var saleClsValue=[];
+	 	$('input[name="saleCls"]:checked').each(function () {
+				saleClsValue.push($(this).val());
+		});
+	 	if (saleClsValue.toString() == '') {
+			saleClsValue.push('1');
+			saleClsValue.push('2');
+			saleClsValue.push('3');
+			saleClsValue.push('4');
+		}
+		$("#saleClsSelected").val(saleClsValue.toString());
+		
+		if ($("#saleClsSelected").val() != null && $("#detailConditionOpenFlg").val() == '1') {
+			var saleClsList = $("#saleClsSelected").val();
+			if (saleClsList.indexOf('1') >= 0) {
+				$("#landDetalConditionOpenFlag").val("1");
+			}
+			if (saleClsList.indexOf('2') >= 0) {
+				$("#detachedDetalConditionOpenFlag").val("1");
+			} 
+			if (saleClsList.indexOf('3') >= 0) {
+				$("#mansionDetalConditionOpenFlag").val("1");
+			} 
+			if (saleClsList.indexOf('4') >= 0) {
+				$("#otherLandDetalConditionOpenFlag").val("1");
+			}
+		}
+		
+		var municipalityValue=[];
+	 	$('input[name="municipalityIds"]:checked').each(function () {
+			municipalityValue.push($(this).val());
+		});
+	 	$('input[name="otherMunicipalityIds"]:checked').each(function () {
+			municipalityValue.push($(this).val());
+		});
+		$("#municipalitychecked").val(municipalityValue.toString());
+			
+		$("#saleStandardAmountLowerSelect").attr("disabled", false);
+	    $("#saleStandardAmountUpperSelect").attr("disabled", false);
+	    $("#saleStandardAmountLower").attr("disabled", false);
+	    $("#saleStandardAmountUpper").attr("disabled", false);
+		$("#searchareaselectForm").attr("action","/app/areaselect/ps002/h05");
+		$("#searchareaselectForm").submit();
+	}
+	
+	/**
+	 * <p>
+	 * 市区町村リンククリック処理。
+	 * </p>
+	 * 
+	 */
+	function　areaLinkSearch(municipalityId, municipalityNm)　{
+		$("#municipalityId").val(municipalityId);
+		$("#municipalityNm").val(municipalityNm);
+		
+		var saleClsValue=[];
+	 	$('input[name="saleCls"]:checked').each(function () {
+				saleClsValue.push($(this).val());
+		});
+	 	if (saleClsValue.toString() == '') {
+			saleClsValue.push('1');
+			saleClsValue.push('2');
+			saleClsValue.push('3');
+			saleClsValue.push('4');
+		}
+		$("#saleClsSelected").val(saleClsValue.toString());
+		
+		if ($("#saleClsSelected").val() != null && $("#detailConditionOpenFlg").val() == '1') {
+			var saleClsList = $("#saleClsSelected").val();
+			if (saleClsList.indexOf('1') >= 0) {
+				$("#landDetalConditionOpenFlag").val("1");
+			}
+			if (saleClsList.indexOf('2') >= 0) {
+				$("#detachedDetalConditionOpenFlag").val("1");
+			} 
+			if (saleClsList.indexOf('3') >= 0) {
+				$("#mansionDetalConditionOpenFlag").val("1");
+			} 
+			if (saleClsList.indexOf('4') >= 0) {
+				$("#otherLandDetalConditionOpenFlag").val("1");
+			}
+		}
+		
+		var municipalityValue=[];
+	 	$('input[name="municipalityIds"]:checked').each(function () {
+			municipalityValue.push($(this).val());
+		});
+	 	$('input[name="otherMunicipalityIds"]:checked').each(function () {
+			municipalityValue.push($(this).val());
+		});
+		$("#municipalitychecked").val(municipalityValue.toString());
+			
+		$("#saleStandardAmountLowerSelect").attr("disabled", false);
+	    $("#saleStandardAmountUpperSelect").attr("disabled", false);
+	    $("#saleStandardAmountLower").attr("disabled", false);
+	    $("#saleStandardAmountUpper").attr("disabled", false);
+		
+		$("#searchareaselectForm").attr("action","/app/areaselect/ps002/h10");
+		$("#searchareaselectForm").submit();
+	}
+	function cityAllSelected(index) {
+		var cityid = 'municipalityIdArea' + index;
+		$('#' + cityid).find('input[type="checkbox"][disabled!="disabled"]').prop('checked', true);
+	    event.preventDefault();
+	    event.stopPropagation();
+	}
+
+	function cityAllUnSelected(index) {
+		var cityid = 'municipalityIdArea'+ index;
+		$('#' + cityid).find('input[type="checkbox"][disabled!="disabled"]').prop('checked', false);
+	    event.preventDefault();
+	    event.stopPropagation();
+	}
+	$(document).ready(function() {
+		//売却種別ごとに項目表示
+	    //検索条件選択の種別「土地」をチェックされた場合
+	    if ($("#saleClsLand").is(':checked')) {
+	        //土地表示項目ブロック
+	        $("#landClsBlock").css("display", "block");
+	    } else {
+	        $("#landClsBlock").css("display", "none");
+	    }
+	    //検索条件選択の種別「戸建て」をチェックされた場合
+	    if ($("#saleClsDetached").is(':checked')) {
+	        //戸建て表示項目ブロック
+	        $("#detachedBlock").css("display", "block");
+	    } else {
+	        $("#detachedBlock").css("display", "none");
+	    }
+	    //検索条件選択の種別「マンション」をチェックされた場合
+	    if ($("#saleClsMansion").is(':checked')) {
+	        //マンション表示項目ブロック
+	        $("#mansionBlock").css("display", "block");
+	    } else {
+	        $("#mansionBlock").css("display", "none");
+	    }
+	    //検索条件選択の種別「その他」をチェックされた場合
+	    if ($("#saleClsOther").is(':checked')) {
+	        //その他表示項目ブロック
+	        $("#saleClsOtherBlock").css("display", "block");
+	    } else {
+	        $("#saleClsOtherBlock").css("display", "none");
+	    }
+	});
+	</script>
+</body>
+</html>
