@@ -40,12 +40,7 @@ jobs:
           PYTHONUNBUFFERED: "1"
         run: |
           echo "scrape workflow git_sha=$(git rev-parse HEAD)"
-          echo "scrape workflow script=$(python - <<'PYINFO'
-import inspect
-import scraper.bit.scrape_details as scrape_details
-print(inspect.getfile(scrape_details))
-PYINFO
-)"
+          python -c "import inspect; import scraper.bit.scrape_details as m; print(f'scrape workflow script={inspect.getfile(m)}')"
           python -u -m scraper.bit.scrape_details
       - name: Upload error screenshots
         if: failure()
