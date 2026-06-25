@@ -273,7 +273,7 @@ async def wait_for_visible_text(
           return false;
         }
         """,
-        payload,
+        arg=payload,
         timeout=timeout,
     )
 
