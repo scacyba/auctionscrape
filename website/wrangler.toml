@@ -1,6 +1,10 @@
 name = "auction-scraping-site"
-pages_build_output_dir = "public"
+main = "worker.js"
 compatibility_date = "2026-06-24"
+
+[assets]
+directory = "./public"
+binding = "ASSETS"
 
 [[r2_buckets]]
 binding = "AUCTION_BUCKET"
