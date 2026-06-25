@@ -33,6 +33,37 @@
     .item dt, .popup dt { color: #64748b; font-weight: 700; }
     .item dd, .popup dd { margin: 0; overflow-wrap: anywhere; }
     .download { display: inline-block; margin-top: 8px; color: white; background: #2563eb; border-radius: 999px; padding: 6px 10px; text-decoration: none; font-weight: 700; }
+
+    /* Leaflet critical layout styles are inlined so map tiles do not break when CDN CSS is blocked or delayed. */
+    .leaflet-container { position: relative; overflow: hidden; background: #dbeafe; outline-offset: 1px; }
+    .leaflet-pane, .leaflet-tile, .leaflet-marker-icon, .leaflet-marker-shadow, .leaflet-tile-container, .leaflet-pane > svg, .leaflet-pane > canvas, .leaflet-zoom-box, .leaflet-image-layer, .leaflet-layer { position: absolute; left: 0; top: 0; }
+    .leaflet-tile { border: 0; user-select: none; visibility: hidden; }
+    .leaflet-tile-loaded { visibility: inherit; }
+    .leaflet-map-pane canvas { z-index: 100; }
+    .leaflet-tile-pane { z-index: 200; }
+    .leaflet-overlay-pane { z-index: 400; }
+    .leaflet-shadow-pane { z-index: 500; }
+    .leaflet-marker-pane { z-index: 600; }
+    .leaflet-tooltip-pane { z-index: 650; }
+    .leaflet-popup-pane { z-index: 700; }
+    .leaflet-control { position: relative; z-index: 800; pointer-events: auto; }
+    .leaflet-top, .leaflet-bottom { position: absolute; z-index: 1000; pointer-events: none; }
+    .leaflet-top { top: 0; }
+    .leaflet-right { right: 0; }
+    .leaflet-bottom { bottom: 0; }
+    .leaflet-left { left: 0; }
+    .leaflet-control { float: left; clear: both; }
+    .leaflet-right .leaflet-control { float: right; }
+    .leaflet-top .leaflet-control { margin-top: 10px; }
+    .leaflet-bottom .leaflet-control { margin-bottom: 10px; }
+    .leaflet-left .leaflet-control { margin-left: 10px; }
+    .leaflet-right .leaflet-control { margin-right: 10px; }
+    .leaflet-popup { position: absolute; text-align: center; margin-bottom: 20px; }
+    .leaflet-popup-content-wrapper { background: white; color: #1f2937; border-radius: 12px; box-shadow: 0 3px 14px rgb(0 0 0 / 40%); padding: 1px; text-align: left; }
+    .leaflet-popup-content { margin: 12px 14px; line-height: 1.5; min-width: 260px; }
+    .leaflet-popup-tip-container { position: absolute; left: 50%; margin-left: -20px; width: 40px; height: 20px; overflow: hidden; pointer-events: none; }
+    .leaflet-popup-tip { width: 17px; height: 17px; padding: 1px; margin: -10px auto 0; transform: rotate(45deg); background: white; box-shadow: 0 3px 14px rgb(0 0 0 / 40%); }
+    .leaflet-interactive { cursor: pointer; }
     @media (max-width: 1120px) { .layout { grid-template-columns: 1fr; } #map { height: 560px; min-height: 560px; } .list { max-height: none; } }
     @media (prefers-color-scheme: dark) {
       body { background: #0f172a; color: #e5e7eb; }
@@ -169,7 +200,14 @@
           let marker = null;
           if (point) {
             bounds.push([point.lat, point.lng]);
-            marker = L.marker([point.lat, point.lng], { title: item.location }).bindPopup(popupHtml(item));
+            marker = L.circleMarker([point.lat, point.lng], {
+              title: item.location,
+              radius: 8,
+              color: '#0f172a',
+              weight: 2,
+              fillColor: '#ef4444',
+              fillOpacity: 0.95,
+            }).bindPopup(popupHtml(item));
             marker.on('mouseover', () => marker.openPopup());
             marker.on('mouseout', () => marker.closePopup());
             marker.addTo(markers);
@@ -187,6 +225,8 @@
     }
     monthInput.addEventListener('change', populateDays);
     loadButton.addEventListener('click', loadItems);
+    window.addEventListener('load', () => setTimeout(() => map.invalidateSize(), 0));
+    window.addEventListener('resize', () => map.invalidateSize());
     setDefaultMonth();
     populateDays();
   </script>
