@@ -29,11 +29,23 @@ jobs:
           playwright install --with-deps chromium
       - name: Scrape detail HTML and PDFs to R2
         env:
-          BIT_START_URL: ${{ github.event.inputs.start_url || vars.BIT_START_URL }}
-          SCRAPE_MAX_DETAILS: ${{ github.event.inputs.max_details || vars.SCRAPE_MAX_DETAILS }}
+          BIT_START_URL: ${{ github.event.inputs.start_url || vars.BIT_START_URL || 'https://www.bit.courts.go.jp/' }}
+          SCRAPE_MAX_DETAILS: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.max_details || '' }}
           R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
           R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
           R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
           R2_BUCKET: ${{ secrets.R2_BUCKET }}
           R2_PREFIX: ${{ vars.R2_PREFIX }}
-        run: python -m scraper.bit.scrape_details
+          BIT_ERROR_ARTIFACT_DIR: artifacts/bit-error
+          PYTHONUNBUFFERED: "1"
+        run: |
+          echo "scrape workflow git_sha=$(git rev-parse HEAD)"
+          python -c "import inspect; import scraper.bit.scrape_details as m; print(f'scrape workflow script={inspect.getfile(m)}')"
+          python -u -m scraper.bit.scrape_details
+      - name: Upload error screenshots
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: bit-error-screenshots
+          path: artifacts/bit-error
+          if-no-files-found: ignore
