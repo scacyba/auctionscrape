@@ -238,8 +238,50 @@ def should_navigate_to_okayama(start_url: str) -> bool:
     return parsed.path.rstrip("/") in {path.rstrip("/") for path in BIT_ENTRY_PATHS}
 
 
+async def wait_for_visible_text(
+    page: Page, expected_text: str | re.Pattern[str], timeout: int = 30_000
+) -> None:
+    if isinstance(expected_text, str):
+        payload = {"text": expected_text, "is_regex": False}
+    else:
+        payload = {
+            "text": expected_text.pattern,
+            "is_regex": True,
+            "flags": "i" if expected_text.flags & re.IGNORECASE else "",
+        }
+    await page.wait_for_function(
+        r"""
+        payload => {
+          const matcher = payload.is_regex
+            ? value => new RegExp(payload.text, payload.flags || '').test(value)
+            : value => value.includes(payload.text);
+          const isVisible = element => {
+            if (!element) return false;
+            const style = window.getComputedStyle(element);
+            if (style.display === 'none' || style.visibility === 'hidden' || style.opacity === '0') {
+              return false;
+            }
+            if (element.closest('[hidden], [aria-hidden="true"]')) return false;
+            const rects = element.getClientRects();
+            return rects.length > 0;
+          };
+          const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+          for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+            const text = (node.textContent || '').replace(/\s+/g, ' ').trim();
+            if (text && matcher(text) && isVisible(node.parentElement)) return true;
+          }
+          return false;
+        }
+        """,
+        payload,
+        timeout=timeout,
+    )
+
+
 async def wait_after_navigation_click(
-    page: Page, expected_text: str | re.Pattern[str] | None = None
+    page: Page,
+    expected_text: str | re.Pattern[str] | None = None,
+    enforce_expected_text: bool = False,
 ) -> None:
     # BIT often performs full-page transitions after clicks; prefer networkidle but
     # fall back to waiting for text that identifies the expected next screen.
@@ -247,17 +289,17 @@ async def wait_after_navigation_click(
         log_progress("waiting for networkidle after click")
         await page.wait_for_load_state("networkidle", timeout=30_000)
         await log_page_state(page, "networkidle reached")
-        if expected_text is None:
+        if expected_text is None or not enforce_expected_text:
             return
-        await page.get_by_text(expected_text).first.wait_for(timeout=10_000)
+        await wait_for_visible_text(page, expected_text, timeout=10_000)
         await log_page_state(page, "expected text is visible after networkidle")
         return
     except PlaywrightTimeoutError:
-        log_progress("networkidle or expected text wait timed out; falling back to expected text wait")
-    if expected_text is None:
+        log_progress("networkidle or expected text wait timed out; using fallback wait")
+    if expected_text is None or not enforce_expected_text:
         await page.wait_for_load_state("domcontentloaded", timeout=30_000)
         return
-    await page.get_by_text(expected_text).first.wait_for(timeout=30_000)
+    await wait_for_visible_text(page, expected_text, timeout=30_000)
     await log_page_state(page, "expected text is visible")
 
 
@@ -475,13 +517,17 @@ async def open_detail_by_click(page: Page, target: ScrapeTarget) -> Page:
             await locator.click()
         detail_page = await popup_info.value
         log_progress("detail link opened in a popup/tab")
-        await wait_after_navigation_click(detail_page, DETAIL_PAGE_TEXT)
+        await wait_after_navigation_click(
+            detail_page, DETAIL_PAGE_TEXT, enforce_expected_text=True
+        )
         await log_page_state(detail_page, "after detail popup click")
         return detail_page
     except PlaywrightTimeoutError:
         log_progress("detail link did not open a popup; falling back to same-tab navigation")
 
-    await wait_after_navigation_click(page, DETAIL_PAGE_TEXT)
+    await wait_after_navigation_click(
+        page, DETAIL_PAGE_TEXT, enforce_expected_text=True
+    )
     await log_page_state(page, "after detail same-tab click")
     return page
 
