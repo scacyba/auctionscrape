@@ -8,7 +8,7 @@
   <style>
     :root { color-scheme: light dark; font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
     body { margin: 0; background: #f6f7fb; color: #1f2937; }
-    main { max-width: 1180px; margin: 0 auto; padding: 32px 16px 48px; }
+    main { max-width: 1440px; margin: 0 auto; padding: 32px 16px 48px; }
     .hero { background: linear-gradient(135deg, #047857, #0891b2); color: white; border-radius: 20px; padding: 28px; box-shadow: 0 18px 40px rgb(15 23 42 / 18%); }
     h1 { margin: 0 0 8px; font-size: clamp(1.7rem, 4vw, 2.4rem); }
     .hero p { margin: 0; opacity: .92; }
@@ -23,17 +23,17 @@
     button:disabled { cursor: not-allowed; background: #94a3b8; }
     .status { margin-top: 16px; min-height: 1.5em; color: #475569; }
     .status.error { color: #b91c1c; }
-    .layout { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 18px; }
-    #map { min-height: 620px; border-radius: 16px; border: 1px solid #cbd5e1; overflow: hidden; }
-    .list { margin: 0; padding: 0; list-style: none; display: grid; gap: 10px; max-height: 620px; overflow: auto; }
+    .layout { display: grid; grid-template-columns: minmax(720px, 1fr) minmax(420px, 480px); gap: 18px; align-items: stretch; }
+    #map { height: 680px; min-height: 680px; border-radius: 16px; border: 1px solid #cbd5e1; overflow: hidden; }
+    .list { margin: 0; padding: 0; list-style: none; display: grid; align-content: start; gap: 10px; max-height: 680px; overflow: auto; }
     .item { border: 1px solid #e2e8f0; border-radius: 12px; padding: 12px; background: #fff; }
     .item strong { display: block; margin-bottom: 6px; }
-    .item dl, .popup dl { margin: 0; display: grid; gap: 4px; }
-    .item div, .popup div { display: grid; grid-template-columns: 7em 1fr; gap: 8px; }
+    .item dl, .popup dl { margin: 0; display: grid; gap: 6px; }
+    .info-row { display: grid; grid-template-columns: 8em minmax(0, 1fr); gap: 10px; align-items: start; }
     .item dt, .popup dt { color: #64748b; font-weight: 700; }
-    .item dd, .popup dd { margin: 0; }
+    .item dd, .popup dd { margin: 0; overflow-wrap: anywhere; }
     .download { display: inline-block; margin-top: 8px; color: white; background: #2563eb; border-radius: 999px; padding: 6px 10px; text-decoration: none; font-weight: 700; }
-    @media (max-width: 860px) { .layout { grid-template-columns: 1fr; } #map { min-height: 480px; } .list { max-height: none; } }
+    @media (max-width: 1120px) { .layout { grid-template-columns: 1fr; } #map { height: 560px; min-height: 560px; } .list { max-height: none; } }
     @media (prefers-color-scheme: dark) {
       body { background: #0f172a; color: #e5e7eb; }
       .panel, .item { background: #111827; }
@@ -105,34 +105,49 @@
 
     function popupHtml(item) {
       return `<div class="popup"><strong>${escapeHtml(item.title || '無題の物件')}</strong><dl>`
-        + `<div><dt>所在地</dt><dd>${escapeHtml(item.location || '未取得')}</dd></div>`
-        + `<div><dt>売却基準価額</dt><dd>${escapeHtml(item.salePrice || '未取得')}</dd></div>`
-        + `<div><dt>入札期間</dt><dd>${escapeHtml(item.bidPeriod || '未取得')}</dd></div>`
+        + `<div class="info-row"><dt>所在地</dt><dd>${escapeHtml(item.location || '未取得')}</dd></div>`
+        + `<div class="info-row"><dt>売却基準価額</dt><dd>${escapeHtml(item.salePrice || '未取得')}</dd></div>`
+        + `<div class="info-row"><dt>入札期間</dt><dd>${escapeHtml(item.bidPeriod || '未取得')}</dd></div>`
         + `</dl></div>`;
     }
     function escapeHtml(value) {
       return String(value).replace(/[&<>'"]/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[char]));
     }
     async function geocode(location) {
-      const cacheKey = `geocode:${location}`;
+      const cacheKey = `geocode:v2:${location}`;
       const cached = localStorage.getItem(cacheKey);
       if (cached) return JSON.parse(cached);
-      const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=jp&q=${encodeURIComponent(location)}`, {
-        headers: { 'accept': 'application/json' },
-      });
-      if (!response.ok) return null;
-      const results = await response.json();
-      if (!results.length) return null;
-      const point = { lat: Number(results[0].lat), lng: Number(results[0].lon) };
+      const response = await fetch(`/api/geocode?location=${encodeURIComponent(location)}`);
+      if (!response.ok) {
+        localStorage.setItem(cacheKey, 'null');
+        return null;
+      }
+      const point = await response.json();
       localStorage.setItem(cacheKey, JSON.stringify(point));
-      await new Promise(resolve => setTimeout(resolve, 1100));
       return point;
     }
-    function renderList(item, point) {
+    function listItemHtml(item, point) {
+      const status = point ? '地図表示済み' : '地図未取得';
+      return `<strong>${escapeHtml(item.title || '無題の物件')}</strong><dl>`
+        + `<div class="info-row"><dt>所在地</dt><dd>${escapeHtml(item.location || '未取得')}</dd></div>`
+        + `<div class="info-row"><dt>売却基準価額</dt><dd>${escapeHtml(item.salePrice || '未取得')}</dd></div>`
+        + `<div class="info-row"><dt>入札期間</dt><dd>${escapeHtml(item.bidPeriod || '未取得')}</dd></div>`
+        + `<div class="info-row"><dt>地図</dt><dd>${status}</dd></div>`
+        + `</dl>`
+        + (item.pdf ? `<a class="download" href="/api/pdf?key=${encodeURIComponent(item.pdf)}">PDF</a>` : '');
+    }
+    function renderList(item, point, marker) {
       const li = document.createElement('li');
       li.className = 'item';
-      li.innerHTML = popupHtml(item) + (item.pdf ? `<a class="download" href="/api/pdf?key=${encodeURIComponent(item.pdf)}">PDF</a>` : '');
-      if (point) li.addEventListener('mouseenter', () => map.setView([point.lat, point.lng], Math.max(map.getZoom(), 15)));
+      li.innerHTML = listItemHtml(item, point);
+      if (point) {
+        li.addEventListener('mouseenter', () => {
+          map.invalidateSize();
+          map.setView([point.lat, point.lng], Math.max(map.getZoom(), 15));
+          marker?.openPopup();
+        });
+        li.addEventListener('mouseleave', () => marker?.closePopup());
+      }
       itemsEl.append(li);
     }
     async function loadItems() {
@@ -141,6 +156,7 @@
       markers.clearLayers();
       itemsEl.textContent = '';
       setStatus('読み込み中...');
+      requestAnimationFrame(() => map.invalidateSize());
       try {
         const response = await fetch(`/api/items?date=${encodeURIComponent(selectedDate())}`);
         const payload = await response.json().catch(() => ({}));
@@ -150,14 +166,17 @@
         const bounds = [];
         for (const item of items) {
           const point = await geocode(item.location);
-          renderList(item, point);
-          if (!point) continue;
-          bounds.push([point.lat, point.lng]);
-          const marker = L.marker([point.lat, point.lng]).bindPopup(popupHtml(item));
-          marker.on('mouseover', () => marker.openPopup());
-          marker.on('mouseout', () => marker.closePopup());
-          marker.addTo(markers);
+          let marker = null;
+          if (point) {
+            bounds.push([point.lat, point.lng]);
+            marker = L.marker([point.lat, point.lng], { title: item.location }).bindPopup(popupHtml(item));
+            marker.on('mouseover', () => marker.openPopup());
+            marker.on('mouseout', () => marker.closePopup());
+            marker.addTo(markers);
+          }
+          renderList(item, point, marker);
         }
+        map.invalidateSize();
         if (bounds.length) map.fitBounds(bounds, { padding: [32, 32], maxZoom: 16 });
         setStatus(`${payload.date} の所在地付き物件: ${items.length}件 / 地図表示: ${bounds.length}件`);
       } catch (error) {
