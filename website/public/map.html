@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>岡山県競売情報 地図表示</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIINfQnqHNeQw9gNKPZrBxoNMLVPv2qf1r0=" crossorigin="" />
+  <style>
+    :root { color-scheme: light dark; font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+    body { margin: 0; background: #f6f7fb; color: #1f2937; }
+    main { max-width: 1180px; margin: 0 auto; padding: 32px 16px 48px; }
+    .hero { background: linear-gradient(135deg, #047857, #0891b2); color: white; border-radius: 20px; padding: 28px; box-shadow: 0 18px 40px rgb(15 23 42 / 18%); }
+    h1 { margin: 0 0 8px; font-size: clamp(1.7rem, 4vw, 2.4rem); }
+    .hero p { margin: 0; opacity: .92; }
+    .nav { margin-top: 16px; display: flex; gap: 10px; flex-wrap: wrap; }
+    .nav a { color: #047857; background: white; border-radius: 999px; padding: 8px 14px; text-decoration: none; font-weight: 700; }
+    .panel { margin-top: 24px; background: white; border-radius: 16px; padding: 20px; box-shadow: 0 10px 28px rgb(15 23 42 / 10%); }
+    .controls { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); align-items: end; }
+    label { display: grid; gap: 6px; font-weight: 700; }
+    input, select, button { font: inherit; border-radius: 10px; border: 1px solid #cbd5e1; padding: 10px 12px; }
+    button { cursor: pointer; border: 0; background: #059669; color: white; font-weight: 700; }
+    button:hover { background: #047857; }
+    button:disabled { cursor: not-allowed; background: #94a3b8; }
+    .status { margin-top: 16px; min-height: 1.5em; color: #475569; }
+    .status.error { color: #b91c1c; }
+    .layout { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 18px; }
+    #map { min-height: 620px; border-radius: 16px; border: 1px solid #cbd5e1; overflow: hidden; }
+    .list { margin: 0; padding: 0; list-style: none; display: grid; gap: 10px; max-height: 620px; overflow: auto; }
+    .item { border: 1px solid #e2e8f0; border-radius: 12px; padding: 12px; background: #fff; }
+    .item strong { display: block; margin-bottom: 6px; }
+    .item dl, .popup dl { margin: 0; display: grid; gap: 4px; }
+    .item div, .popup div { display: grid; grid-template-columns: 7em 1fr; gap: 8px; }
+    .item dt, .popup dt { color: #64748b; font-weight: 700; }
+    .item dd, .popup dd { margin: 0; }
+    .download { display: inline-block; margin-top: 8px; color: white; background: #2563eb; border-radius: 999px; padding: 6px 10px; text-decoration: none; font-weight: 700; }
+    @media (max-width: 860px) { .layout { grid-template-columns: 1fr; } #map { min-height: 480px; } .list { max-height: none; } }
+    @media (prefers-color-scheme: dark) {
+      body { background: #0f172a; color: #e5e7eb; }
+      .panel, .item { background: #111827; }
+      .item, #map { border-color: #334155; }
+      input, select { background: #0f172a; color: #e5e7eb; border-color: #475569; }
+      .status, .item dt, .popup dt { color: #cbd5e1; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <section class="hero">
+      <h1>岡山県競売情報 地図表示</h1>
+      <p>詳細から取得した所在地を地図に表示し、地点にマウスホバーすると売却基準価額と入札期間を確認できます。</p>
+      <nav class="nav" aria-label="ページ切り替え"><a href="/">PDF一覧へ</a></nav>
+    </section>
+
+    <section class="panel" aria-labelledby="search-heading">
+      <h2 id="search-heading">検索条件</h2>
+      <div class="controls">
+        <label>年月<input id="month" type="month" min="2020-01" /></label>
+        <label>日付<select id="day"></select></label>
+        <button id="load" type="button">地図を表示</button>
+      </div>
+      <p id="status" class="status" role="status" aria-live="polite"></p>
+    </section>
+
+    <section class="panel layout" aria-label="地図と物件一覧">
+      <div id="map"></div>
+      <ul id="items" class="list"></ul>
+    </section>
+  </main>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  <script>
+    const monthInput = document.querySelector('#month');
+    const daySelect = document.querySelector('#day');
+    const loadButton = document.querySelector('#load');
+    const statusEl = document.querySelector('#status');
+    const itemsEl = document.querySelector('#items');
+    const map = L.map('map').setView([34.6618, 133.9350], 10);
+    const markers = L.layerGroup().addTo(map);
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution: '&copy; OpenStreetMap contributors',
+    }).addTo(map);
+
+    function pad(value) { return String(value).padStart(2, '0'); }
+    function selectedDate() { return `${monthInput.value}-${daySelect.value}`; }
+    function setStatus(message, isError = false) { statusEl.textContent = message; statusEl.classList.toggle('error', isError); }
+    function setDefaultMonth() { const now = new Date(); monthInput.value = `${now.getFullYear()}-${pad(now.getMonth() + 1)}`; }
+    function populateDays() {
+      const [year, month] = monthInput.value.split('-').map(Number);
+      const selected = daySelect.value;
+      daySelect.textContent = '';
+      if (!year || !month) return;
+      const daysInMonth = new Date(year, month, 0).getDate();
+      for (let day = 1; day <= daysInMonth; day += 1) {
+        const option = document.createElement('option');
+        option.value = pad(day);
+        option.textContent = `${day}日`;
+        daySelect.append(option);
+      }
+      const today = new Date();
+      const defaultDay = year === today.getFullYear() && month === today.getMonth() + 1 ? pad(today.getDate()) : '01';
+      daySelect.value = selected && Number(selected) <= daysInMonth ? selected : defaultDay;
+    }
+
+    function popupHtml(item) {
+      return `<div class="popup"><strong>${escapeHtml(item.title || '無題の物件')}</strong><dl>`
+        + `<div><dt>所在地</dt><dd>${escapeHtml(item.location || '未取得')}</dd></div>`
+        + `<div><dt>売却基準価額</dt><dd>${escapeHtml(item.salePrice || '未取得')}</dd></div>`
+        + `<div><dt>入札期間</dt><dd>${escapeHtml(item.bidPeriod || '未取得')}</dd></div>`
+        + `</dl></div>`;
+    }
+    function escapeHtml(value) {
+      return String(value).replace(/[&<>'"]/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[char]));
+    }
+    async function geocode(location) {
+      const cacheKey = `geocode:${location}`;
+      const cached = localStorage.getItem(cacheKey);
+      if (cached) return JSON.parse(cached);
+      const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=jp&q=${encodeURIComponent(location)}`, {
+        headers: { 'accept': 'application/json' },
+      });
+      if (!response.ok) return null;
+      const results = await response.json();
+      if (!results.length) return null;
+      const point = { lat: Number(results[0].lat), lng: Number(results[0].lon) };
+      localStorage.setItem(cacheKey, JSON.stringify(point));
+      await new Promise(resolve => setTimeout(resolve, 1100));
+      return point;
+    }
+    function renderList(item, point) {
+      const li = document.createElement('li');
+      li.className = 'item';
+      li.innerHTML = popupHtml(item) + (item.pdf ? `<a class="download" href="/api/pdf?key=${encodeURIComponent(item.pdf)}">PDF</a>` : '');
+      if (point) li.addEventListener('mouseenter', () => map.setView([point.lat, point.lng], Math.max(map.getZoom(), 15)));
+      itemsEl.append(li);
+    }
+    async function loadItems() {
+      if (!monthInput.value || !daySelect.value) return setStatus('年月と日付を選択してください。', true);
+      loadButton.disabled = true;
+      markers.clearLayers();
+      itemsEl.textContent = '';
+      setStatus('読み込み中...');
+      try {
+        const response = await fetch(`/api/items?date=${encodeURIComponent(selectedDate())}`);
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(payload.error || `取得に失敗しました (${response.status})`);
+        const items = (Array.isArray(payload.items) ? payload.items : []).filter(item => item.location);
+        if (!items.length) { setStatus('地図表示できる所在地付き物件がありません。'); return; }
+        const bounds = [];
+        for (const item of items) {
+          const point = await geocode(item.location);
+          renderList(item, point);
+          if (!point) continue;
+          bounds.push([point.lat, point.lng]);
+          const marker = L.marker([point.lat, point.lng]).bindPopup(popupHtml(item));
+          marker.on('mouseover', () => marker.openPopup());
+          marker.on('mouseout', () => marker.closePopup());
+          marker.addTo(markers);
+        }
+        if (bounds.length) map.fitBounds(bounds, { padding: [32, 32], maxZoom: 16 });
+        setStatus(`${payload.date} の所在地付き物件: ${items.length}件 / 地図表示: ${bounds.length}件`);
+      } catch (error) {
+        setStatus(error.message, true);
+      } finally {
+        loadButton.disabled = false;
+      }
+    }
+    monthInput.addEventListener('change', populateDays);
+    loadButton.addEventListener('click', loadItems);
+    setDefaultMonth();
+    populateDays();
+  </script>
+</body>
+</html>

@@ -44,6 +44,9 @@ class ScrapeTarget:
     sale_unit_id: str | None = None
     court_id: str | None = None
     title: str | None = None
+    sale_price: str | None = None
+    bid_period: str | None = None
+    location: str | None = None
     page_number: int = 1
 
 
@@ -100,16 +103,80 @@ def title_from_anchor(anchor) -> str | None:
     return first_line or text
 
 
+
+def nearest_result_block(anchor):
+    for parent in anchor.parents:
+        text = normalize_text(parent.get_text(" ", strip=True))
+        if "売却基準価額" in text and "入札期間" in text:
+            return parent
+    return None
+
+
+def value_after_label(block, label: str) -> str | None:
+    if block is None:
+        return None
+    labels = block.find_all(string=lambda value: value and label in normalize_text(value))
+    for label_node in labels:
+        label_element = label_node.parent
+        if label_element is None:
+            continue
+        parent = label_element.parent
+        if parent is not None:
+            siblings = list(parent.find_all(recursive=False))
+            if label_element in siblings:
+                index = siblings.index(label_element)
+                for sibling in siblings[index + 1 :]:
+                    text = normalize_text(sibling.get_text(" ", strip=True))
+                    if text and label not in text:
+                        return text
+        next_element = label_element.find_next()
+        while next_element is not None and next_element is not label_element:
+            text = normalize_text(next_element.get_text(" ", strip=True))
+            if text and label not in text:
+                return text
+            next_element = next_element.find_next()
+    return None
+
+
+def extract_location_from_result_block(block) -> str | None:
+    if block is None:
+        return None
+    map_link = block.find("a", onclick=lambda value: value and "tranPropertyMap" in value)
+    if map_link is not None:
+        previous = map_link.find_previous("p")
+        if previous is not None:
+            text = normalize_text(previous.get_text(" ", strip=True))
+            if text and "周辺地図" not in text:
+                return text
+    for paragraph in block.find_all("p"):
+        text = normalize_text(paragraph.get_text(" ", strip=True))
+        if re.search(r"(市|区|町|村).*(番|丁目|字)", text):
+            return text
+    return None
+
+
+def metadata_from_result_anchor(anchor) -> dict[str, str | None]:
+    block = nearest_result_block(anchor)
+    return {
+        "sale_price": value_after_label(block, "売却基準価額"),
+        "bid_period": value_after_label(block, "入札期間"),
+        "location": extract_location_from_result_block(block),
+    }
+
 def scrape_target_from_anchor(
     anchor, base_url: str, page_number: int = 1
 ) -> ScrapeTarget | None:
     href = anchor.get("href", "")
     absolute_url = urljoin(base_url, href)
     if DETAIL_URL_PATTERN.search(urlparse(absolute_url).path):
+        metadata = metadata_from_result_anchor(anchor)
         return ScrapeTarget(
             detail_url=absolute_url,
             stable_id=stable_id_from_url(absolute_url),
             title=title_from_anchor(anchor),
+            sale_price=metadata["sale_price"],
+            bid_period=metadata["bid_period"],
+            location=metadata["location"],
             page_number=page_number,
         )
 
@@ -128,12 +195,16 @@ def scrape_target_from_anchor(
         base_url,
         f"/app/propertyresult/pr001/h05?saleUnitId={sale_unit_id}&courtId={court_id}",
     )
+    metadata = metadata_from_result_anchor(anchor)
     return ScrapeTarget(
         detail_url=detail_url,
         stable_id=stable_id_from_url(detail_url),
         sale_unit_id=sale_unit_id,
         court_id=court_id,
         title=title_from_anchor(anchor),
+        sale_price=metadata["sale_price"],
+        bid_period=metadata["bid_period"],
+        location=metadata["location"],
         page_number=page_number,
     )
 
@@ -617,7 +688,14 @@ async def scrape(
                             f"saved detail artifacts: html={html_key}; pdf=NOT_FOUND"
                         )
                     else:
-                        manifest_items.append({"title": title, "pdf": pdf_key})
+                        manifest_item = {"title": title, "pdf": pdf_key}
+                        if target.sale_price:
+                            manifest_item["salePrice"] = target.sale_price
+                        if target.bid_period:
+                            manifest_item["bidPeriod"] = target.bid_period
+                        if target.location:
+                            manifest_item["location"] = target.location
+                        manifest_items.append(manifest_item)
                         log_progress(
                             f"saved detail artifacts: html={html_key}; pdf={pdf_key}"
                         )
