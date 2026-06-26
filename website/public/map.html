@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>岡山県競売情報 地図表示</title>
+  <link rel="stylesheet" href="/vendor/leaflet/leaflet.css" />
+  <style>
+    :root { color-scheme: light dark; font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+    body { margin: 0; background: #f6f7fb; color: #1f2937; }
+    main { max-width: 1440px; margin: 0 auto; padding: 32px 16px 48px; }
+    .hero { background: linear-gradient(135deg, #047857, #0891b2); color: white; border-radius: 20px; padding: 28px; box-shadow: 0 18px 40px rgb(15 23 42 / 18%); }
+    h1 { margin: 0 0 8px; font-size: clamp(1.7rem, 4vw, 2.4rem); }
+    .hero p { margin: 0; opacity: .92; }
+    .nav { margin-top: 16px; display: flex; gap: 10px; flex-wrap: wrap; }
+    .nav a { color: #047857; background: white; border-radius: 999px; padding: 8px 14px; text-decoration: none; font-weight: 700; }
+    .panel { margin-top: 24px; background: white; border-radius: 16px; padding: 20px; box-shadow: 0 10px 28px rgb(15 23 42 / 10%); }
+    .controls { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); align-items: end; }
+    label { display: grid; gap: 6px; font-weight: 700; }
+    input, select, button { font: inherit; border-radius: 10px; border: 1px solid #cbd5e1; padding: 10px 12px; }
+    button { cursor: pointer; border: 0; background: #059669; color: white; font-weight: 700; }
+    button:hover { background: #047857; }
+    button:disabled { cursor: not-allowed; background: #94a3b8; }
+    .status { margin-top: 16px; min-height: 1.5em; color: #475569; }
+    .status.error { color: #b91c1c; }
+    .layout { display: grid; grid-template-columns: minmax(720px, 1fr) minmax(420px, 480px); gap: 18px; align-items: stretch; }
+    #map { height: 680px; min-height: 680px; border-radius: 16px; border: 1px solid #cbd5e1; overflow: hidden; }
+    .list { margin: 0; padding: 0; list-style: none; display: grid; align-content: start; gap: 10px; max-height: 680px; overflow: auto; }
+    .item { border: 1px solid #e2e8f0; border-radius: 12px; padding: 12px; background: #fff; }
+    .item strong { display: block; margin-bottom: 6px; }
+    .item dl, .popup dl { margin: 0; display: grid; gap: 6px; }
+    .info-row { display: grid; grid-template-columns: 8em minmax(0, 1fr); gap: 10px; align-items: start; }
+    .item dt, .popup dt { color: #64748b; font-weight: 700; }
+    .item dd, .popup dd { margin: 0; overflow-wrap: anywhere; }
+    .download { display: inline-block; margin-top: 8px; color: white; background: #2563eb; border-radius: 999px; padding: 6px 10px; text-decoration: none; font-weight: 700; }
+
+    .app-map-popup { position: absolute; z-index: 710; box-sizing: border-box; pointer-events: none; text-align: left; }
+    .app-map-popup-content { max-height: inherit; overflow: auto; border-radius: 12px; background: white; color: #333; box-shadow: 0 3px 14px rgb(0 0 0 / 40%); padding: 13px 18px; font-size: 13px; line-height: 1.3; max-width: min(320px, calc(100vw - 48px)); }
+    .app-map-popup-tip { position: absolute; width: 17px; height: 17px; background: white; box-shadow: 0 3px 14px rgb(0 0 0 / 40%); transform: rotate(45deg); pointer-events: none; }
+    .app-map-popup[data-placement=top] .app-map-popup-tip { top: 100%; left: var(--popup-tip-x, 50%); margin: -9px 0 0 -8px; }
+    .app-map-popup[data-placement=bottom] .app-map-popup-tip { bottom: 100%; left: var(--popup-tip-x, 50%); margin: 0 0 -9px -8px; }
+    .app-map-popup[data-placement=left] .app-map-popup-tip { left: 100%; top: var(--popup-tip-y, 50%); margin: -8px 0 0 -9px; }
+    .app-map-popup[data-placement=right] .app-map-popup-tip { right: 100%; top: var(--popup-tip-y, 50%); margin: -8px -9px 0 0; }
+    @media (max-width: 1120px) { .layout { grid-template-columns: 1fr; } #map { height: 560px; min-height: 560px; } .list { max-height: none; } }
+    @media (prefers-color-scheme: dark) {
+      body { background: #0f172a; color: #e5e7eb; }
+      .panel, .item { background: #111827; }
+      .item, #map { border-color: #334155; }
+      input, select { background: #0f172a; color: #e5e7eb; border-color: #475569; }
+      .status, .item dt, .popup dt { color: #cbd5e1; }
+      .app-map-popup-content, .app-map-popup-tip { background: #111827; color: #e5e7eb; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <section class="hero">
+      <h1>岡山県競売情報 地図表示</h1>
+      <p>詳細から取得した所在地を地図に表示し、地点にマウスホバーすると売却基準価額と入札期間を確認できます。</p>
+      <nav class="nav" aria-label="ページ切り替え"><a href="/">PDF一覧へ</a></nav>
+    </section>
+
+    <section class="panel" aria-labelledby="search-heading">
+      <h2 id="search-heading">検索条件</h2>
+      <div class="controls">
+        <label>年月<input id="month" type="month" min="2020-01" /></label>
+        <label>日付<select id="day"></select></label>
+        <button id="load" type="button">地図を表示</button>
+      </div>
+      <p id="status" class="status" role="status" aria-live="polite"></p>
+    </section>
+
+    <section class="panel layout" aria-label="地図と物件一覧">
+      <div id="map"></div>
+      <ul id="items" class="list"></ul>
+    </section>
+  </main>
+
+  <script src="/vendor/leaflet/leaflet.js"></script>
+  <script src="/map.js" defer></script>
+</body>
+</html>

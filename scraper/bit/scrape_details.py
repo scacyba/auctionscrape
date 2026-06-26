@@ -44,6 +44,11 @@ class ScrapeTarget:
     sale_unit_id: str | None = None
     court_id: str | None = None
     title: str | None = None
+    sale_price: str | None = None
+    bid_period: str | None = None
+    location: str | None = None
+    lat: float | None = None
+    lng: float | None = None
     page_number: int = 1
 
 
@@ -100,16 +105,118 @@ def title_from_anchor(anchor) -> str | None:
     return first_line or text
 
 
+
+def nearest_result_block(anchor):
+    for parent in anchor.parents:
+        text = normalize_text(parent.get_text(" ", strip=True))
+        if "売却基準価額" in text and "入札期間" in text:
+            return parent
+    return None
+
+
+def value_after_label(block, label: str) -> str | None:
+    if block is None:
+        return None
+    labels = block.find_all(string=lambda value: value and label in normalize_text(value))
+    for label_node in labels:
+        label_element = label_node.parent
+        if label_element is None:
+            continue
+        parent = label_element.parent
+        if parent is not None:
+            siblings = list(parent.find_all(recursive=False))
+            if label_element in siblings:
+                index = siblings.index(label_element)
+                for sibling in siblings[index + 1 :]:
+                    text = normalize_text(sibling.get_text(" ", strip=True))
+                    if text and label not in text:
+                        return text
+        next_element = label_element.find_next()
+        while next_element is not None and next_element is not label_element:
+            text = normalize_text(next_element.get_text(" ", strip=True))
+            if text and label not in text:
+                return text
+            next_element = next_element.find_next()
+    return None
+
+
+def extract_location_from_result_block(block) -> str | None:
+    if block is None:
+        return None
+    map_link = block.find("a", onclick=lambda value: value and "tranPropertyMap" in value)
+    if map_link is not None:
+        previous = map_link.find_previous("p")
+        if previous is not None:
+            text = normalize_text(previous.get_text(" ", strip=True))
+            if text and "周辺地図" not in text:
+                return text
+    for paragraph in block.find_all("p"):
+        text = normalize_text(paragraph.get_text(" ", strip=True))
+        if re.search(r"(市|区|町|村).*(番|丁目|字)", text):
+            return text
+    return None
+
+
+def hidden_result_value(soup: BeautifulSoup, index: str, field: str) -> str | None:
+    selector = f'input[name="resultList[{index}].{field}"]'
+    element = soup.select_one(selector)
+    if element is None:
+        return None
+    value = normalize_text(element.get("value", ""))
+    return value or None
+
+
+def parse_coordinate(value: str | None) -> float | None:
+    if value is None:
+        return None
+    try:
+        coordinate = float(value)
+    except ValueError:
+        return None
+    return coordinate if -180 <= coordinate <= 180 else None
+
+
+def result_index_for_anchor(anchor) -> str | None:
+    block = nearest_result_block(anchor)
+    if block is None:
+        return None
+    hidden = block.find("input", attrs={"name": re.compile(r"^resultList\[(\d+)\]\.saleUnitId$")})
+    if hidden is None:
+        hidden = block.find("input", attrs={"name": re.compile(r"^resultList\[(\d+)\]\.")})
+    name = hidden.get("name", "") if hidden is not None else ""
+    match = re.match(r"resultList\[(\d+)\]\.", name)
+    return match.group(1) if match else None
+
+
+def metadata_from_result_anchor(anchor) -> dict[str, str | float | None]:
+    block = nearest_result_block(anchor)
+    soup = anchor.find_parent(["html", "body"])
+    result_index = result_index_for_anchor(anchor)
+    hidden = (lambda field: hidden_result_value(soup, result_index, field)) if soup is not None and result_index is not None else (lambda field: None)
+    return {
+        "sale_price": value_after_label(block, "売却基準価額") or hidden("saleStandardAmountDisp"),
+        "bid_period": value_after_label(block, "入札期間") or hidden("bidPeriod"),
+        "location": extract_location_from_result_block(block) or hidden("address"),
+        "lat": parse_coordinate(hidden("latitude")),
+        "lng": parse_coordinate(hidden("longitude")),
+    }
+
 def scrape_target_from_anchor(
     anchor, base_url: str, page_number: int = 1
 ) -> ScrapeTarget | None:
     href = anchor.get("href", "")
     absolute_url = urljoin(base_url, href)
     if DETAIL_URL_PATTERN.search(urlparse(absolute_url).path):
+        metadata = metadata_from_result_anchor(anchor)
         return ScrapeTarget(
             detail_url=absolute_url,
             stable_id=stable_id_from_url(absolute_url),
             title=title_from_anchor(anchor),
+            sale_price=metadata["sale_price"],
+            bid_period=metadata["bid_period"],
+            location=metadata["location"],
+            lat=metadata["lat"],
+            lng=metadata["lng"],
             page_number=page_number,
         )
 
@@ -128,12 +235,18 @@ def scrape_target_from_anchor(
         base_url,
         f"/app/propertyresult/pr001/h05?saleUnitId={sale_unit_id}&courtId={court_id}",
     )
+    metadata = metadata_from_result_anchor(anchor)
     return ScrapeTarget(
         detail_url=detail_url,
         stable_id=stable_id_from_url(detail_url),
         sale_unit_id=sale_unit_id,
         court_id=court_id,
         title=title_from_anchor(anchor),
+        sale_price=metadata["sale_price"],
+        bid_period=metadata["bid_period"],
+        location=metadata["location"],
+        lat=metadata["lat"],
+        lng=metadata["lng"],
         page_number=page_number,
     )
 
@@ -545,7 +658,7 @@ def extract_detail_title(html: str, fallback: str | None = None) -> str:
     return fallback or ""
 
 
-def save_manifest(storage: R2Storage, items: list[dict[str, str]]) -> str:
+def save_manifest(storage: R2Storage, items: list[dict[str, str | float]]) -> str:
     now = utc_today()
     body = {"date": f"{now:%Y-%m-%d}", "items": items}
     return storage.put_bytes(
@@ -592,7 +705,7 @@ async def scrape(
                 raise RuntimeError(
                     f"No detail links found after navigation; current_url={page.url}"
                 )
-            manifest_items: list[dict[str, str]] = []
+            manifest_items: list[dict[str, str | float]] = []
             for index, target in enumerate(targets, start=1):
                 log_progress(
                     f"processing detail {index}/{len(targets)}: {target.detail_url}"
@@ -617,7 +730,17 @@ async def scrape(
                             f"saved detail artifacts: html={html_key}; pdf=NOT_FOUND"
                         )
                     else:
-                        manifest_items.append({"title": title, "pdf": pdf_key})
+                        manifest_item = {"title": title, "pdf": pdf_key}
+                        if target.sale_price:
+                            manifest_item["salePrice"] = target.sale_price
+                        if target.bid_period:
+                            manifest_item["bidPeriod"] = target.bid_period
+                        if target.location:
+                            manifest_item["location"] = target.location
+                        if target.lat is not None and target.lng is not None:
+                            manifest_item["lat"] = target.lat
+                            manifest_item["lng"] = target.lng
+                        manifest_items.append(manifest_item)
                         log_progress(
                             f"saved detail artifacts: html={html_key}; pdf={pdf_key}"
                         )
