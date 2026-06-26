@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>岡山県競売情報 地図表示</title>
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIINfQnqHNeQw9gNKPZrBxoNMLVPv2qf1r0=" crossorigin="" />
+  <link rel="stylesheet" href="/vendor/leaflet/leaflet.css" />
   <style>
     :root { color-scheme: light dark; font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
     body { margin: 0; background: #f6f7fb; color: #1f2937; }
@@ -33,37 +33,6 @@
     .item dt, .popup dt { color: #64748b; font-weight: 700; }
     .item dd, .popup dd { margin: 0; overflow-wrap: anywhere; }
     .download { display: inline-block; margin-top: 8px; color: white; background: #2563eb; border-radius: 999px; padding: 6px 10px; text-decoration: none; font-weight: 700; }
-
-    /* Leaflet critical layout styles are inlined so map tiles do not break when CDN CSS is blocked or delayed. */
-    .leaflet-container { position: relative; overflow: hidden; background: #dbeafe; outline-offset: 1px; }
-    .leaflet-pane, .leaflet-tile, .leaflet-marker-icon, .leaflet-marker-shadow, .leaflet-tile-container, .leaflet-pane > svg, .leaflet-pane > canvas, .leaflet-zoom-box, .leaflet-image-layer, .leaflet-layer { position: absolute; left: 0; top: 0; }
-    .leaflet-tile { border: 0; user-select: none; visibility: hidden; }
-    .leaflet-tile-loaded { visibility: inherit; }
-    .leaflet-map-pane canvas { z-index: 100; }
-    .leaflet-tile-pane { z-index: 200; }
-    .leaflet-overlay-pane { z-index: 400; }
-    .leaflet-shadow-pane { z-index: 500; }
-    .leaflet-marker-pane { z-index: 600; }
-    .leaflet-tooltip-pane { z-index: 650; }
-    .leaflet-popup-pane { z-index: 700; }
-    .leaflet-control { position: relative; z-index: 800; pointer-events: auto; }
-    .leaflet-top, .leaflet-bottom { position: absolute; z-index: 1000; pointer-events: none; }
-    .leaflet-top { top: 0; }
-    .leaflet-right { right: 0; }
-    .leaflet-bottom { bottom: 0; }
-    .leaflet-left { left: 0; }
-    .leaflet-control { float: left; clear: both; }
-    .leaflet-right .leaflet-control { float: right; }
-    .leaflet-top .leaflet-control { margin-top: 10px; }
-    .leaflet-bottom .leaflet-control { margin-bottom: 10px; }
-    .leaflet-left .leaflet-control { margin-left: 10px; }
-    .leaflet-right .leaflet-control { margin-right: 10px; }
-    .leaflet-popup { position: absolute; text-align: center; margin-bottom: 20px; }
-    .leaflet-popup-content-wrapper { background: white; color: #1f2937; border-radius: 12px; box-shadow: 0 3px 14px rgb(0 0 0 / 40%); padding: 1px; text-align: left; }
-    .leaflet-popup-content { margin: 12px 14px; line-height: 1.5; min-width: 260px; }
-    .leaflet-popup-tip-container { position: absolute; left: 50%; margin-left: -20px; width: 40px; height: 20px; overflow: hidden; pointer-events: none; }
-    .leaflet-popup-tip { width: 17px; height: 17px; padding: 1px; margin: -10px auto 0; transform: rotate(45deg); background: white; box-shadow: 0 3px 14px rgb(0 0 0 / 40%); }
-    .leaflet-interactive { cursor: pointer; }
     @media (max-width: 1120px) { .layout { grid-template-columns: 1fr; } #map { height: 560px; min-height: 560px; } .list { max-height: none; } }
     @media (prefers-color-scheme: dark) {
       body { background: #0f172a; color: #e5e7eb; }
@@ -98,137 +67,7 @@
     </section>
   </main>
 
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
-  <script>
-    const monthInput = document.querySelector('#month');
-    const daySelect = document.querySelector('#day');
-    const loadButton = document.querySelector('#load');
-    const statusEl = document.querySelector('#status');
-    const itemsEl = document.querySelector('#items');
-    const map = L.map('map').setView([34.6618, 133.9350], 10);
-    const markers = L.layerGroup().addTo(map);
-
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      maxZoom: 19,
-      attribution: '&copy; OpenStreetMap contributors',
-    }).addTo(map);
-
-    function pad(value) { return String(value).padStart(2, '0'); }
-    function selectedDate() { return `${monthInput.value}-${daySelect.value}`; }
-    function setStatus(message, isError = false) { statusEl.textContent = message; statusEl.classList.toggle('error', isError); }
-    function setDefaultMonth() { const now = new Date(); monthInput.value = `${now.getFullYear()}-${pad(now.getMonth() + 1)}`; }
-    function populateDays() {
-      const [year, month] = monthInput.value.split('-').map(Number);
-      const selected = daySelect.value;
-      daySelect.textContent = '';
-      if (!year || !month) return;
-      const daysInMonth = new Date(year, month, 0).getDate();
-      for (let day = 1; day <= daysInMonth; day += 1) {
-        const option = document.createElement('option');
-        option.value = pad(day);
-        option.textContent = `${day}日`;
-        daySelect.append(option);
-      }
-      const today = new Date();
-      const defaultDay = year === today.getFullYear() && month === today.getMonth() + 1 ? pad(today.getDate()) : '01';
-      daySelect.value = selected && Number(selected) <= daysInMonth ? selected : defaultDay;
-    }
-
-    function popupHtml(item) {
-      return `<div class="popup"><strong>${escapeHtml(item.title || '無題の物件')}</strong><dl>`
-        + `<div class="info-row"><dt>所在地</dt><dd>${escapeHtml(item.location || '未取得')}</dd></div>`
-        + `<div class="info-row"><dt>売却基準価額</dt><dd>${escapeHtml(item.salePrice || '未取得')}</dd></div>`
-        + `<div class="info-row"><dt>入札期間</dt><dd>${escapeHtml(item.bidPeriod || '未取得')}</dd></div>`
-        + `</dl></div>`;
-    }
-    function escapeHtml(value) {
-      return String(value).replace(/[&<>'"]/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[char]));
-    }
-    async function geocode(location) {
-      const cacheKey = `geocode:v2:${location}`;
-      const cached = localStorage.getItem(cacheKey);
-      if (cached) return JSON.parse(cached);
-      const response = await fetch(`/api/geocode?location=${encodeURIComponent(location)}`);
-      if (!response.ok) {
-        localStorage.setItem(cacheKey, 'null');
-        return null;
-      }
-      const point = await response.json();
-      localStorage.setItem(cacheKey, JSON.stringify(point));
-      return point;
-    }
-    function listItemHtml(item, point) {
-      const status = point ? '地図表示済み' : '地図未取得';
-      return `<strong>${escapeHtml(item.title || '無題の物件')}</strong><dl>`
-        + `<div class="info-row"><dt>所在地</dt><dd>${escapeHtml(item.location || '未取得')}</dd></div>`
-        + `<div class="info-row"><dt>売却基準価額</dt><dd>${escapeHtml(item.salePrice || '未取得')}</dd></div>`
-        + `<div class="info-row"><dt>入札期間</dt><dd>${escapeHtml(item.bidPeriod || '未取得')}</dd></div>`
-        + `<div class="info-row"><dt>地図</dt><dd>${status}</dd></div>`
-        + `</dl>`
-        + (item.pdf ? `<a class="download" href="/api/pdf?key=${encodeURIComponent(item.pdf)}">PDF</a>` : '');
-    }
-    function renderList(item, point, marker) {
-      const li = document.createElement('li');
-      li.className = 'item';
-      li.innerHTML = listItemHtml(item, point);
-      if (point) {
-        li.addEventListener('mouseenter', () => {
-          map.invalidateSize();
-          map.setView([point.lat, point.lng], Math.max(map.getZoom(), 15));
-          marker?.openPopup();
-        });
-        li.addEventListener('mouseleave', () => marker?.closePopup());
-      }
-      itemsEl.append(li);
-    }
-    async function loadItems() {
-      if (!monthInput.value || !daySelect.value) return setStatus('年月と日付を選択してください。', true);
-      loadButton.disabled = true;
-      markers.clearLayers();
-      itemsEl.textContent = '';
-      setStatus('読み込み中...');
-      requestAnimationFrame(() => map.invalidateSize());
-      try {
-        const response = await fetch(`/api/items?date=${encodeURIComponent(selectedDate())}`);
-        const payload = await response.json().catch(() => ({}));
-        if (!response.ok) throw new Error(payload.error || `取得に失敗しました (${response.status})`);
-        const items = (Array.isArray(payload.items) ? payload.items : []).filter(item => item.location);
-        if (!items.length) { setStatus('地図表示できる所在地付き物件がありません。'); return; }
-        const bounds = [];
-        for (const item of items) {
-          const point = await geocode(item.location);
-          let marker = null;
-          if (point) {
-            bounds.push([point.lat, point.lng]);
-            marker = L.circleMarker([point.lat, point.lng], {
-              title: item.location,
-              radius: 8,
-              color: '#0f172a',
-              weight: 2,
-              fillColor: '#ef4444',
-              fillOpacity: 0.95,
-            }).bindPopup(popupHtml(item));
-            marker.on('mouseover', () => marker.openPopup());
-            marker.on('mouseout', () => marker.closePopup());
-            marker.addTo(markers);
-          }
-          renderList(item, point, marker);
-        }
-        map.invalidateSize();
-        if (bounds.length) map.fitBounds(bounds, { padding: [32, 32], maxZoom: 16 });
-        setStatus(`${payload.date} の所在地付き物件: ${items.length}件 / 地図表示: ${bounds.length}件`);
-      } catch (error) {
-        setStatus(error.message, true);
-      } finally {
-        loadButton.disabled = false;
-      }
-    }
-    monthInput.addEventListener('change', populateDays);
-    loadButton.addEventListener('click', loadItems);
-    window.addEventListener('load', () => setTimeout(() => map.invalidateSize(), 0));
-    window.addEventListener('resize', () => map.invalidateSize());
-    setDefaultMonth();
-    populateDays();
-  </script>
+  <script src="/vendor/leaflet/leaflet.js"></script>
+  <script src="/map.js" defer></script>
 </body>
 </html>
