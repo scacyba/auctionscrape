@@ -111,7 +111,8 @@ async function loadItems() {
   setStatus('読み込み中...');
   requestAnimationFrame(() => map.invalidateSize());
   try {
-    const response = await fetch(`/api/items?date=${encodeURIComponent(selectedDate())}`);
+    const requestedDate = selectedDate();
+    const response = await fetch(`/api/items?date=${encodeURIComponent(requestedDate)}&fallbackLatest=1`);
     const payload = await response.json().catch(() => ({}));
     if (!response.ok) throw new Error(payload.error || `取得に失敗しました (${response.status})`);
     const items = (Array.isArray(payload.items) ? payload.items : []).filter(item => item.location || manifestPoint(item));
@@ -128,7 +129,10 @@ async function loadItems() {
     map.invalidateSize();
     if (bounds.length) map.fitBounds(bounds, { padding: [32, 32], maxZoom: 16 });
     const fallbackText = fallbackCount ? ` / fallback geocoding: ${fallbackCount}件` : '';
-    setStatus(`${payload.date} の物件: ${items.length}件 / 地図表示: ${bounds.length}件${fallbackText}`);
+    const dateText = payload.fallbackLatest
+      ? `${requestedDate} のデータが無いため、最新の ${payload.date}`
+      : payload.date;
+    setStatus(`${dateText} の物件: ${items.length}件 / 地図表示: ${bounds.length}件${fallbackText}`);
   } catch (error) {
     setStatus(error.message, true);
   } finally {
