@@ -52,6 +52,14 @@ class ScrapeTarget:
     page_number: int = 1
 
 
+@dataclass(frozen=True)
+class StoredArtifact:
+    key: str
+    sha256: str
+    downloaded_date: str
+    deduplicated: bool
+
+
 def env_value_or_default(name: str, default: str) -> str:
     value = os.getenv(name)
     if value is None or value.strip() == "":
@@ -572,20 +580,38 @@ def dated_key(kind: str, stable_id: str, extension: str, now: datetime | None = 
     return f"okayama/{kind}/{now:%Y/%m/%d}/{stable_id}.{extension}"
 
 
+def content_addressed_key(kind: str, digest: str, extension: str) -> str:
+    return f"okayama/{kind}/by-sha256/{digest}.{extension}"
+
+
 def manifest_key(now: datetime | None = None) -> str:
     now = now or utc_today()
     return f"okayama/html/{now:%Y/%m/%d}/items.json"
 
 
-async def save_detail_html(page: Page, storage: R2Storage, target: ScrapeTarget) -> str:
-    html = await page.content()
-    key = dated_key("html", target.stable_id, "html")
-    return storage.put_bytes(key, html.encode("utf-8"), "text/html; charset=utf-8")
+def save_deduplicated_artifact(
+    storage: R2Storage,
+    kind: str,
+    body: bytes,
+    extension: str,
+    content_type: str,
+    downloaded_at: datetime | None = None,
+) -> StoredArtifact:
+    downloaded_at = downloaded_at or utc_today()
+    digest = hashlib.sha256(body).hexdigest()
+    key = content_addressed_key(kind, digest, extension)
+    deduplicated = storage.exists(key)
+    if not deduplicated:
+        storage.put_bytes(key, body, content_type)
+    return StoredArtifact(
+        key=storage.normalized_key(key),
+        sha256=digest,
+        downloaded_date=f"{downloaded_at:%Y-%m-%d}",
+        deduplicated=deduplicated,
+    )
 
 
-async def download_pdf_by_click(
-    page: Page, storage: R2Storage, target: ScrapeTarget, pdf_stable_id: str | None = None
-) -> str | None:
+async def download_pdf_by_click(page: Page, storage: R2Storage) -> StoredArtifact | None:
     locator = page.locator(
         'button:has(span.bit__download_btn_font:has-text("3点セット")), '
         'button:has-text("3点セット"), #threeSetPDF'
@@ -610,8 +636,13 @@ async def download_pdf_by_click(
             pdf_bytes = b"".join(chunks)
         else:
             pdf_bytes = await asyncio.to_thread(lambda: open(body, "rb").read())
-        key = dated_key("pdf", pdf_stable_id or target.stable_id, "pdf")
-        return storage.put_bytes(key, pdf_bytes, "application/pdf")
+        return save_deduplicated_artifact(
+            storage,
+            "pdf",
+            pdf_bytes,
+            "pdf",
+            "application/pdf",
+        )
     except PlaywrightTimeoutError:
         return None
 
@@ -658,7 +689,7 @@ def extract_detail_title(html: str, fallback: str | None = None) -> str:
     return fallback or ""
 
 
-def save_manifest(storage: R2Storage, items: list[dict[str, str | float]]) -> str:
+def save_manifest(storage: R2Storage, items: list[dict[str, object]]) -> str:
     now = utc_today()
     body = {"date": f"{now:%Y-%m-%d}", "items": items}
     return storage.put_bytes(
@@ -705,7 +736,7 @@ async def scrape(
                 raise RuntimeError(
                     f"No detail links found after navigation; current_url={page.url}"
                 )
-            manifest_items: list[dict[str, str | float]] = []
+            manifest_items: list[dict[str, object]] = []
             for index, target in enumerate(targets, start=1):
                 log_progress(
                     f"processing detail {index}/{len(targets)}: {target.detail_url}"
@@ -717,20 +748,31 @@ async def scrape(
                 try:
                     detail_html = await detail_page.content()
                     title = extract_detail_title(detail_html, target.title)
-                    html_key = storage.put_bytes(
-                        dated_key("html", target.stable_id, "html"),
+                    html_artifact = save_deduplicated_artifact(
+                        storage,
+                        "html",
                         detail_html.encode("utf-8"),
+                        "html",
                         "text/html; charset=utf-8",
                     )
-                    pdf_key = await download_pdf_by_click(
-                        detail_page, storage, target, f"{index:03d}"
-                    )
-                    if pdf_key is None:
+                    pdf_artifact = await download_pdf_by_click(detail_page, storage)
+                    if pdf_artifact is None:
                         log_progress(
-                            f"saved detail artifacts: html={html_key}; pdf=NOT_FOUND"
+                            f"saved detail artifacts: html={html_artifact.key} "
+                            f"(deduplicated={html_artifact.deduplicated}); pdf=NOT_FOUND"
                         )
                     else:
-                        manifest_item = {"title": title, "pdf": pdf_key}
+                        manifest_item = {
+                            "title": title,
+                            "html": html_artifact.key,
+                            "htmlSha256": html_artifact.sha256,
+                            "htmlDownloadedDate": html_artifact.downloaded_date,
+                            "htmlDeduplicated": html_artifact.deduplicated,
+                            "pdf": pdf_artifact.key,
+                            "pdfSha256": pdf_artifact.sha256,
+                            "pdfDownloadedDate": pdf_artifact.downloaded_date,
+                            "pdfDeduplicated": pdf_artifact.deduplicated,
+                        }
                         if target.sale_price:
                             manifest_item["salePrice"] = target.sale_price
                         if target.bid_period:
@@ -742,7 +784,10 @@ async def scrape(
                             manifest_item["lng"] = target.lng
                         manifest_items.append(manifest_item)
                         log_progress(
-                            f"saved detail artifacts: html={html_key}; pdf={pdf_key}"
+                            f"saved detail artifacts: html={html_artifact.key} "
+                            f"(deduplicated={html_artifact.deduplicated}); "
+                            f"pdf={pdf_artifact.key} "
+                            f"(deduplicated={pdf_artifact.deduplicated})"
                         )
                 finally:
                     if detail_page is not page:

@@ -4,6 +4,7 @@ import os
 from dataclasses import dataclass
 
 import boto3
+from botocore.exceptions import ClientError
 
 
 @dataclass(frozen=True)
@@ -46,8 +47,23 @@ class R2Storage:
             region_name="auto",
         )
 
+    def normalized_key(self, key: str) -> str:
+        return "/".join(part.strip("/") for part in [self.config.prefix, key] if part)
+
+    def exists(self, key: str) -> bool:
+        normalized_key = self.normalized_key(key)
+        try:
+            self.client.head_object(Bucket=self.config.bucket, Key=normalized_key)
+            return True
+        except ClientError as error:
+            status = error.response.get("ResponseMetadata", {}).get("HTTPStatusCode")
+            code = error.response.get("Error", {}).get("Code")
+            if status == 404 or code in {"404", "NoSuchKey", "NotFound"}:
+                return False
+            raise
+
     def put_bytes(self, key: str, body: bytes, content_type: str) -> str:
-        normalized_key = "/".join(part.strip("/") for part in [self.config.prefix, key] if part)
+        normalized_key = self.normalized_key(key)
         self.client.put_object(
             Bucket=self.config.bucket,
             Key=normalized_key,

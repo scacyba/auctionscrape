@@ -1,7 +1,7 @@
 const R2_BINDING = 'AUCTION_BUCKET';
 const ITEM_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 const ITEMS_PREFIX = 'bit/okayama/html/';
-const PDF_KEY_PATTERN = /^bit\/okayama\/pdf\/\d{4}\/\d{2}\/\d{2}\/[A-Za-z0-9._-]+\.pdf$/;
+const PDF_KEY_PATTERN = /^bit\/okayama\/pdf\/(?:(?:\d{4}\/\d{2}\/\d{2}\/[A-Za-z0-9._-]+)|(?:by-sha256\/[a-f0-9]{64}))\.pdf$/;
 
 const MAX_LOCATION_LENGTH = 200;
 const NOMINATIM_ENDPOINT = 'https://nominatim.openstreetmap.org/search';
